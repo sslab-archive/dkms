@@ -14,29 +14,9 @@
  * limitations under the License.
  */
 
-package main
+package node
 
-import (
-	"encoding/hex"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-)
-
-func GenPrvPub() (string, string) {
-	suite := edwards25519.NewBlakeSHA256Ed25519()
-	prv := suite.Scalar().Pick(suite.RandomStream())
-	pub := suite.Point().Mul(prv, nil)
-	prvMarshal, err := prv.MarshalBinary()
-	if err != nil {
-		panic(err.Error())
-	}
-	pubMarshal, err := pub.MarshalBinary()
-	if err != nil {
-		panic(err.Error())
-	}
-	prvStr := hex.EncodeToString(prvMarshal)
-	pubStr := hex.EncodeToString(pubMarshal)
-	return prvStr, pubStr
-}
-func main() {
-
+type Repository interface {
+	Save(data *Node) error
+	Get(id string) (Node, error)
 }

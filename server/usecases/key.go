@@ -14,27 +14,18 @@
  * limitations under the License.
  */
 
-package server
+package usecases
 
-import (
-	"dkms/server/usecases"
-	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
-)
+import "github.com/gin-gonic/gin"
 
-func RunServer(port string) {
-	router := gin.Default()
+func KeyRegisterRequest(c *gin.Context) {
 
-	router.POST("/nodes", usecases.KeyRegisterRequest)
+}
 
-	// challenge, response, etc ...
-	router.POST("/key/:keyId/:action", usecases.KeyVerificationRequest)
+func KeyRetrieveRequest(c *gin.Context) {
 
-	// get raw key
-	router.GET("/key/:keyId", usecases.KeyRetrieveRequest)
+}
 
-	err := router.Run(":" + port)
-	if err != nil {
-		logrus.Panic("서버 초기화중 오류 : " + err.Error())
-	}
+func KeyVerificationRequest(c *gin.Context) {
+
 }

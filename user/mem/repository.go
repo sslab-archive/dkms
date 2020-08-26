@@ -14,13 +14,32 @@
  * limitations under the License.
  */
 
-package types
+package mem
 
-import "go.dedis.ch/kyber/v3"
+import (
+	"dkms/user"
+	"errors"
+)
 
-type Server struct {
-	Id     string
-	PubKey kyber.Point
-	Ip     string
-	Port   string
+type UserRepository struct {
+	nodes map[string]user.User
+}
+
+func NewNodeRepository() *UserRepository {
+	return &UserRepository{
+		nodes: make(map[string]user.User),
+	}
+}
+
+func (ur *UserRepository) Save(data *user.User) error {
+	ur.nodes[data.ID()] = *data
+	return nil
+}
+
+func (ur *UserRepository) Get(id string) (user.User, error) {
+	n, ok := ur.nodes[id]
+	if !ok {
+		return n, errors.New("key not found error")
+	}
+	return n, nil
 }

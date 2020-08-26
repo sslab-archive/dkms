@@ -14,4 +14,31 @@
  * limitations under the License.
  */
 
-package main
+package node
+
+import (
+	"dkms/share/bivss"
+	"go.dedis.ch/kyber/v3"
+)
+
+func NewNode(id string) *Node {
+	return &Node{
+		id:          id,
+		NodeIdx:     0,
+		PubKey:      nil,
+		Address:     "",
+		PartialData: nil,
+	}
+}
+
+type Node struct {
+	id          string
+	NodeIdx     int
+	PubKey      kyber.Point
+	Address     string
+	PartialData []*bivss.EncryptedData
+}
+
+func (d *Node) ID() string {
+	return d.id
+}

@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 
-package usecases
+package user
 
-import "github.com/gin-gonic/gin"
+import (
+	"dkms/share"
+	"dkms/share/bivss"
+)
 
-func KeyVerificationRequest(c *gin.Context) {
-
+type User struct {
+	Id      string
+	encData bivss.EncryptedData
+	yPoly   share.YPoly
 }

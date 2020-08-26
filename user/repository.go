@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package usecases
+package user
 
-import "github.com/gin-gonic/gin"
-
-func KeyRegisterRequest(c *gin.Context) {
-
+type Repository interface {
+	Save(data *User) error
+	Get(id string) (User, error)
 }

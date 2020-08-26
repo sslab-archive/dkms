@@ -1,21 +1,15 @@
 package bivss
 
 import (
+	"dkms/key"
+	"dkms/node"
 	"dkms/share"
+	"fmt"
 
 	"github.com/sirupsen/logrus"
 	"go.dedis.ch/kyber/v3"
 )
 
-// Suite describes the functionalities needed by this package in order to
-// function correctly.
-type Suite interface {
-	kyber.Group
-	kyber.HashFactory
-	kyber.Encoding
-	kyber.XOFFactory
-	kyber.Random
-}
 type EncryptedData struct {
 	x              int
 	y              int
@@ -23,10 +17,6 @@ type EncryptedData struct {
 	committedPoint kyber.Point
 }
 
-type NodeData struct {
-	nodeIdx    int
-	secretData share.YPoly
-}
 
 type RecoveryData struct {
 	fromNodeIdx    int
@@ -34,7 +24,7 @@ type RecoveryData struct {
 	recoveryPoint  share.BiPoint
 }
 
-func MakeEncryptShares(suite Suite, CommitBasePoint kyber.Point, publicKeys []kyber.Point, secret kyber.Scalar, t int, u int) (*share.BiPoly, [][]*EncryptedData, error) {
+func MakeEncryptShares(suite key.Suite, CommitBasePoint kyber.Point, publicKeys []kyber.Point, secret kyber.Scalar, t int, u int) (*share.BiPoly, [][]*EncryptedData, error) {
 	n := len(publicKeys)
 	encData := make([][]*EncryptedData, n)
 	for i := range encData {
@@ -46,7 +36,7 @@ func MakeEncryptShares(suite Suite, CommitBasePoint kyber.Point, publicKeys []ky
 		return nil, nil, err
 	}
 
-	logrus.Info("private polynomial created")
+	logrus.Info(fmt.Sprintf("private polynomial created, t : %d, u : %d", priPoly.T(), priPoly.U()))
 
 	for i := range encData {
 		yPoly := priPoly.GetYPoly(i)
@@ -66,6 +56,10 @@ func MakeEncryptShares(suite Suite, CommitBasePoint kyber.Point, publicKeys []ky
 	return priPoly, encData, nil
 }
 
-func MakeRecoveryData(failIndex int) {
+func MakeRecoveryData(failIndex int) *RecoveryData {
+	panic("impl me!")
+}
 
+func Recover([]*RecoveryData) (*node.Node, error) {
+	panic("impl me!")
 }

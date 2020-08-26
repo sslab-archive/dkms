@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2019 hea9549
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@ package share
 import (
 	"crypto/cipher"
 	"errors"
+
 	"go.dedis.ch/kyber/v3"
 )
 
@@ -29,13 +30,23 @@ type BiPoly struct {
 	yCoeffs []kyber.Scalar // Coefficients of Y the polynomial
 }
 
+type CommitData struct {
+	g            kyber.Group // Cryptographic group
+	b            kyber.Point // Base point
+	secretCommit kyber.Point
+	xCommits     []kyber.Point // Commitments to coefficients of the secret sharing polynomial
+	yCommits     []kyber.Point // Commitments to coefficients of the secret sharing polynomial
+}
+
 type XPoly struct {
+	g        kyber.Group // Cryptographic group
 	I        int
 	constant kyber.Scalar
 	xCoeffs  []kyber.Scalar // Coefficients of X the polynomial
 }
 
 type YPoly struct {
+	g        kyber.Group // Cryptographic group
 	I        int
 	constant kyber.Scalar
 	yCoeffs  []kyber.Scalar // Coefficients of Y the polynomial
@@ -65,6 +76,65 @@ func NewBiPoly(group kyber.Group, t int, u int, s kyber.Scalar, rand cipher.Stre
 	return &BiPoly{g: group, xCoeffs: xCoeffs, yCoeffs: yCoeffs}, nil
 }
 
+func (b *BiPoly) GetXPoly(y int) *XPoly {
+	yi := b.g.Scalar().SetInt64(int64(y))
+	yValue := b.g.Scalar().Zero()
+	for k := b.U() - 1; k >= 0; k-- {
+		yValue.Mul(yValue, yi)
+		yValue.Add(yValue, b.yCoeffs[k])
+	}
+	constant := b.g.Scalar().Zero()
+	constant.Add(b.secret, yValue)
+	return &XPoly{
+		I:        y,
+		constant: constant,
+		xCoeffs:  b.xCoeffs,
+	}
+}
+
+func (b *BiPoly) GetYPoly(x int) *YPoly {
+	xi := b.g.Scalar().SetInt64(int64(x))
+	xValue := b.g.Scalar().Zero()
+	for j := b.T() - 1; j >= 0; j-- {
+		xValue.Mul(xValue, xi)
+		xValue.Add(xValue, b.xCoeffs[j])
+	}
+	constant := b.g.Scalar().Zero()
+	constant.Add(b.secret, xValue)
+	return &YPoly{
+		I:        x,
+		constant: constant,
+		yCoeffs:  b.yCoeffs,
+	}
+}
+
+func (xp *XPoly) Eval(x int) *BiPoint {
+	xi := xp.g.Scalar().SetInt64(int64(x))
+	xValue := xp.g.Scalar().Zero()
+	for j := xp.T() - 1; j >= 0; j-- {
+		xValue.Mul(xValue, xi)
+		xValue.Add(xValue, xp.xCoeffs[j])
+	}
+
+	totalValue := xp.g.Scalar().Zero()
+
+	totalValue.Add(xValue, xp.constant)
+	return &BiPoint{x, xp.I, totalValue}
+}
+
+func (yp *YPoly) Eval(y int) *BiPoint {
+	yi := yp.g.Scalar().SetInt64(int64(y))
+	yValue := yp.g.Scalar().Zero()
+	for k := yp.U() - 1; k >= 0; k-- {
+		yValue.Mul(yValue, yi)
+		yValue.Add(yValue, yp.yCoeffs[k])
+	}
+	totalValue := yp.g.Scalar().Zero()
+
+	totalValue.Add(yValue, yp.constant)
+	return &BiPoint{yp.I, y, totalValue}
+}
+
 func (b *BiPoly) Eval(x int, y int) *BiPoint {
 	xi := b.g.Scalar().SetInt64(int64(x))
 	xValue := b.g.Scalar().Zero()
@@ -85,18 +155,13 @@ func (b *BiPoly) Eval(x int, y int) *BiPoint {
 	return &BiPoint{x, y, totalValue}
 }
 
-func (b *BiPoly) GetXPoly(y int) *XPoly {
-	panic("impl me!")
-}
-
-
-func (b *BiPoly) GetYPoly(x int) *YPoly {
-	panic("impl me!")
-}
-
 // T returns the secret sharing threshold.
 func (b *BiPoly) T() int {
 	return len(b.xCoeffs)
+}
+
+func (xp *XPoly) T() int {
+	return len(xp.xCoeffs)
 }
 
 // U returns the y threshold.
@@ -104,12 +169,30 @@ func (b *BiPoly) U() int {
 	return len(b.yCoeffs)
 }
 
+func (yp *YPoly) U() int {
+	return len(yp.yCoeffs)
+}
+
 // Shares creates a list of n private shares b(x,1),...,p(x,n).
 func (b *BiPoly) Shares(n int) []*YPoly {
-	panic("impl me!")
-	//shares := make([]*YPoly, n)
-	//for i := range shares {
-	//	shares[i] = b.Eval(i)
-	//}
-	//return shares
+	shares := make([]*YPoly, n)
+	for i := range shares {
+		shares[i] = b.GetYPoly(i)
+	}
+	return shares
+}
+
+func (b *BiPoly) Commit(bp kyber.Point) CommitData {
+	xCommits := make([]kyber.Point, b.T())
+	yCommits := make([]kyber.Point, b.T())
+
+	secretCommit := b.g.Point().Mul(b.secret, bp)
+
+	return CommitData{
+		g:            b.g,
+		b:            bp,
+		secretCommit: secretCommit,
+		xCommits:     xCommits,
+		yCommits:     yCommits,
+	}
 }

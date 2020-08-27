@@ -18,7 +18,10 @@ package share
 
 import (
 	"crypto/cipher"
+	"encoding/hex"
 	"errors"
+
+	"dkms/types"
 
 	"go.dedis.ch/kyber/v3"
 )
@@ -36,6 +39,104 @@ type CommitData struct {
 	secretCommit kyber.Point
 	xCommits     []kyber.Point // Commitments to coefficients of the secret sharing polynomial
 	yCommits     []kyber.Point // Commitments to coefficients of the secret sharing polynomial
+}
+
+func (c *CommitData) Marshal() (*types.CommitData, error) {
+	secretCommitBinary, err := c.secretCommit.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	baseBinary, err := c.b.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	XCommit := make([]string, len(c.xCommits))
+	YCommit := make([]string, len(c.yCommits))
+	for _, v := range c.xCommits {
+		b, err := v.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+
+		XCommit = append(XCommit, hex.EncodeToString(b))
+	}
+
+	for _, v := range c.yCommits {
+		b, err := v.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+
+		YCommit = append(YCommit, hex.EncodeToString(b))
+	}
+
+	d := &types.CommitData{
+		BasePoint:    hex.EncodeToString(baseBinary),
+		SecretCommit: hex.EncodeToString(secretCommitBinary),
+		XCommits:     XCommit,
+		YCommits:     YCommit,
+	}
+
+	return d, nil
+}
+
+func (c *CommitData) UnMarshal(rawData *types.CommitData) error {
+	decodeSecretCommit, err := hex.DecodeString(rawData.SecretCommit)
+	if err != nil {
+		return err
+	}
+
+	c.secretCommit = c.g.Point()
+	err = c.secretCommit.UnmarshalBinary(decodeSecretCommit)
+	if err != nil {
+		return err
+	}
+
+	decodeBasePoint, err := hex.DecodeString(rawData.BasePoint)
+	if err != nil {
+		return err
+	}
+
+	c.b = c.g.Point()
+	err = c.secretCommit.UnmarshalBinary(decodeBasePoint)
+	if err != nil {
+		return err
+	}
+
+	xCommit := make([]kyber.Point, len(rawData.XCommits))
+	for i, v := range rawData.XCommits {
+		b, err := hex.DecodeString(v)
+		if err != nil {
+			return err
+		}
+
+		xCommit[i] = c.g.Point()
+		err = xCommit[i].UnmarshalBinary(b)
+		if err != nil {
+			return err
+		}
+	}
+
+	yCommit := make([]kyber.Point, len(rawData.YCommits))
+	for i, v := range rawData.YCommits {
+		b, err := hex.DecodeString(v)
+		if err != nil {
+			return err
+		}
+
+		yCommit[i] = c.g.Point()
+		err = yCommit[i].UnmarshalBinary(b)
+		if err != nil {
+			return err
+		}
+	}
+
+	c.xCommits = xCommit
+	c.yCommits = yCommit
+
+	return nil
 }
 
 type XPoly struct {

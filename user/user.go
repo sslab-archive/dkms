@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2019 hea9549
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,12 +17,13 @@
 package user
 
 import (
+	"dkms/node"
 	"dkms/share"
-	"dkms/share/bivss"
 )
 
 type User struct {
-	Id      string
-	encData bivss.EncryptedData
-	yPoly   share.YPoly
+	Id         string
+	polyCommit share.CommitData
+	myYPoly    share.YPoly
+	nodes      []*node.Node
 }

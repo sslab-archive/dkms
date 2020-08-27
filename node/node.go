@@ -17,7 +17,6 @@
 package node
 
 import (
-	"dkms/share/bivss"
 	"go.dedis.ch/kyber/v3"
 )
 
@@ -27,7 +26,6 @@ func NewNode(id string) *Node {
 		NodeIdx:     0,
 		PubKey:      nil,
 		Address:     "",
-		PartialData: nil,
 	}
 }
 
@@ -36,7 +34,6 @@ type Node struct {
 	NodeIdx     int
 	PubKey      kyber.Point
 	Address     string
-	PartialData []*bivss.EncryptedData
 }
 
 func (d *Node) ID() string {

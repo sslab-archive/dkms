@@ -1,8 +1,8 @@
 package types
 
 type CommitData struct {
-	BasePoint    string   `json:"basePoint"`
-	SecretCommit string   `json:"secretCommit"`
-	XCommits     []string `json:"xCommits"`
-	YCommits     []string `json:"yCommits"`
+	BasePointHex    string   `json:"basePointHex"`
+	SecretCommitHex string   `json:"secretCommitHex"`
+	XCommitsHex     []string `json:"xCommitsHex"`
+	YCommitsHex     []string `json:"yCommitsHex"`
 }

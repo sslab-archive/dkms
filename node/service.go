@@ -14,18 +14,4 @@
  * limitations under the License.
  */
 
-package usecases
-
-import "github.com/gin-gonic/gin"
-
-func KeyRegisterRequest(c *gin.Context) {
-
-}
-
-func KeyRetrieveRequest(c *gin.Context) {
-
-}
-
-func KeyVerificationRequest(c *gin.Context) {
-
-}
+package node

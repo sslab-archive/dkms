@@ -14,8 +14,14 @@
  * limitations under the License.
  */
 
-package interfaces
+package server
 
-type StartVerifyRequest struct {
-	UserId string `json:"userId"`
+import "github.com/gin-gonic/gin"
+
+func BadRequestError(context *gin.Context, err error) {
+	context.JSON(400, gin.H{"error": err.Error()})
+}
+
+func InternalServerError(context *gin.Context, err error) {
+	context.JSON(500, gin.H{"error": err.Error()})
 }

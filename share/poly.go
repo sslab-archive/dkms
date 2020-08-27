@@ -20,7 +20,6 @@ import (
 	"crypto/cipher"
 	"errors"
 
-	"dkms/share/bivss"
 	"dkms/types"
 
 	"go.dedis.ch/kyber/v3"
@@ -42,12 +41,12 @@ type CommitData struct {
 }
 
 func (c *CommitData) Marshal() (*types.CommitData, error) {
-	secretCommitStr, err := bivss.PointToHex(c.secretCommit)
+	secretCommitStr, err := PointToHex(c.secretCommit)
 	if err != nil {
 		return nil, err
 	}
 
-	baseStr, err := bivss.PointToHex(c.h)
+	baseStr, err := PointToHex(c.h)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +54,7 @@ func (c *CommitData) Marshal() (*types.CommitData, error) {
 	XCommit := make([]string, len(c.xCommits))
 	YCommit := make([]string, len(c.yCommits))
 	for _, v := range c.xCommits {
-		str, err := bivss.PointToHex(v)
+		str, err := PointToHex(v)
 		if err != nil {
 			return nil, err
 		}
@@ -64,7 +63,7 @@ func (c *CommitData) Marshal() (*types.CommitData, error) {
 	}
 
 	for _, v := range c.yCommits {
-		str, err := bivss.PointToHex(v)
+		str, err := PointToHex(v)
 		if err != nil {
 			return nil, err
 		}
@@ -73,39 +72,39 @@ func (c *CommitData) Marshal() (*types.CommitData, error) {
 	}
 
 	d := &types.CommitData{
-		BasePoint:    baseStr,
-		SecretCommit: secretCommitStr,
-		XCommits:     XCommit,
-		YCommits:     YCommit,
+		BasePointHex:    baseStr,
+		SecretCommitHex: secretCommitStr,
+		XCommitsHex:     XCommit,
+		YCommitsHex:     YCommit,
 	}
 
 	return d, nil
 }
 
-func (c *CommitData) UnMarshal(rawData *types.CommitData) error {
+func (c *CommitData) UnMarshal(rawData types.CommitData) error {
 	var err error
-	c.secretCommit, err = bivss.HexToPoint(rawData.SecretCommit, c.g)
+	c.secretCommit, err = HexToPoint(rawData.SecretCommitHex, c.g)
 	if err != nil {
 		return err
 	}
 
-	c.h, err = bivss.HexToPoint(rawData.BasePoint, c.g)
+	c.h, err = HexToPoint(rawData.BasePointHex, c.g)
 	if err != nil {
 		return err
 	}
 
-	xCommit := make([]kyber.Point, len(rawData.XCommits))
-	for i, v := range rawData.XCommits {
-		p, err := bivss.HexToPoint(v, c.g)
+	xCommit := make([]kyber.Point, len(rawData.XCommitsHex))
+	for i, v := range rawData.XCommitsHex {
+		p, err := HexToPoint(v, c.g)
 		if err != nil {
 			return err
 		}
 		xCommit[i] = p
 	}
 
-	yCommit := make([]kyber.Point, len(rawData.YCommits))
-	for i, v := range rawData.YCommits {
-		p, err := bivss.HexToPoint(v, c.g)
+	yCommit := make([]kyber.Point, len(rawData.YCommitsHex))
+	for i, v := range rawData.YCommitsHex {
+		p, err := HexToPoint(v, c.g)
 		if err != nil {
 			return err
 		}
@@ -202,7 +201,7 @@ func (xp *XPoly) Eval(x int) *BiPoint {
 	return &BiPoint{x, xp.I, totalValue}
 }
 
-func (yp *YPoly) Eval(y int) *BiPoint {
+func (yp *YPoly) Eval(y int) BiPoint {
 	yi := yp.g.Scalar().SetInt64(int64(y))
 	yValue := yp.g.Scalar().Zero()
 	for k := yp.U() - 1; k >= 0; k-- {
@@ -212,10 +211,10 @@ func (yp *YPoly) Eval(y int) *BiPoint {
 	totalValue := yp.g.Scalar().Zero()
 
 	totalValue.Add(yValue, yp.constant)
-	return &BiPoint{yp.I, y, totalValue}
+	return BiPoint{yp.I, y, totalValue}
 }
 
-func (b *BiPoly) Eval(x int, y int) *BiPoint {
+func (b *BiPoly) Eval(x int, y int) BiPoint {
 	xi := b.g.Scalar().SetInt64(int64(x))
 	xValue := b.g.Scalar().Zero()
 	for j := b.T() - 1; j >= 0; j-- {
@@ -232,7 +231,7 @@ func (b *BiPoly) Eval(x int, y int) *BiPoint {
 	totalValue := b.g.Scalar().Zero()
 
 	totalValue.Add(xValue, yValue)
-	return &BiPoint{x, y, totalValue}
+	return BiPoint{x, y, totalValue}
 }
 
 // T returns the secret sharing threshold.

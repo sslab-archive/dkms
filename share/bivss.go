@@ -1,10 +1,9 @@
-package bivss
+package share
 
 import (
 	"encoding/hex"
 	"fmt"
 
-	"dkms/key"
 	"dkms/node"
 	"dkms/share"
 
@@ -21,12 +20,13 @@ type EncryptedData struct {
 }
 
 type RecoveryData struct {
-	fromNodeIdx    int
-	failureNodeIdx int
-	recoveryPoint  share.BiPoint
+	FromNodeIdx    int
+	FailureNodeIdx int
+	RecoveryPoint  share.BiPoint
+	CommitData     share.CommitData
 }
 
-func MakeEncryptShares(suite key.Suite, CommitBasePoint kyber.Point, publicKeys []kyber.Point, secret kyber.Scalar, t int, u int) (*share.BiPoly, [][]*EncryptedData, error) {
+func MakeEncryptShares(suite share.Suite, CommitBasePoint kyber.Point, publicKeys []kyber.Point, secret kyber.Scalar, t int, u int) (*share.BiPoly, [][]*EncryptedData, error) {
 	n := len(publicKeys)
 	encData := make([][]*EncryptedData, n)
 	for i := range encData {
@@ -82,12 +82,18 @@ func HexToPoint(hexString string, g kyber.Group) (kyber.Point, error) {
 }
 
 func GenerateWScalar(g kyber.Group) kyber.Scalar {
-	ret
-	g.Scalar().Pick(random.New())
+	return g.Scalar().Pick(random.New())
 }
 
-func MakeRecoveryData(failIndex int) *RecoveryData {
-	panic("impl me!")
+func GenerateCScalar(g kyber.Group) kyber.Scalar {
+	return g.Scalar().Pick(random.New())
+}
+
+func GenerateRScalar(g kyber.Group, w kyber.Scalar, c kyber.Scalar, point share.BiPoint) kyber.Scalar {
+	pc := g.Scalar().Mul(point.V, c)
+	r := g.Scalar()
+	r = r.Sub(r, pc)
+	return r
 }
 
 func Recover([]*RecoveryData) (*node.Node, error) {

@@ -23,7 +23,7 @@ import (
 
 type User struct {
 	Id         string
-	polyCommit share.CommitData
-	myYPoly    share.YPoly
+	PolyCommit share.CommitData
+	MyYPoly    share.YPoly
 	Nodes      []*node.Node
 }

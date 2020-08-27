@@ -17,21 +17,22 @@
 package server
 
 import (
-	"dkms/server/usecases"
+	"dkms/server/api"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
 func RunServer(port string) {
+	userApi:= api.NewUser()
 	router := gin.Default()
 
-	router.POST("/nodes", usecases.KeyRegisterRequest)
+	router.POST("/user", userApi.RegisterUser)
 
-	// challenge, response, etc ...
-	router.POST("/key/:keyId/:action", usecases.KeyVerificationRequest)
+	router.POST("/user/:id/startVerify", userApi.StartVerify)
 
-	// get raw key
-	router.GET("/key/:keyId", usecases.KeyRetrieveRequest)
+	router.POST("/user/:id/verifyChallenge", userApi.VerifyChallenge)
+	//// get userInfo
+	//router.GET("/user/:userId", api.KeyRetrieveRequest)
 
 	err := router.Run(":" + port)
 	if err != nil {

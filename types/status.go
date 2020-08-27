@@ -14,16 +14,11 @@
  * limitations under the License.
  */
 
-package user
+package types
 
-import (
-	"dkms/node"
-	"dkms/share"
+type Status = string
+
+const (
+	AVAILABLE = Status("AVAILABLE")
+	CORRUPTED = Status("CORRUPTED")
 )
-
-type User struct {
-	Id         string
-	polyCommit share.CommitData
-	myYPoly    share.YPoly
-	Nodes      []*node.Node
-}

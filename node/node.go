@@ -17,23 +17,26 @@
 package node
 
 import (
+	"dkms/types"
 	"go.dedis.ch/kyber/v3"
 )
 
 func NewNode(id string) *Node {
 	return &Node{
-		id:          id,
-		NodeIdx:     0,
-		PubKey:      nil,
-		Address:     "",
+		id:      id,
+		NodeIdx: 0,
+		PubKey:  nil,
+		Address: "",
+		Status:  types.AVAILABLE,
 	}
 }
 
 type Node struct {
-	id          string
-	NodeIdx     int
-	PubKey      kyber.Point
-	Address     string
+	id      string
+	NodeIdx int
+	PubKey  kyber.Point
+	Address string
+	Status  types.Status
 }
 
 func (d *Node) ID() string {

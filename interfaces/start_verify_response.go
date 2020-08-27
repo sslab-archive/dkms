@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright 2019 hea9549
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,16 +14,9 @@
  * limitations under the License.
  */
 
-package user
+package interfaces
 
-import (
-	"dkms/node"
-	"dkms/share"
-)
-
-type User struct {
-	Id         string
-	polyCommit share.CommitData
-	myYPoly    share.YPoly
-	Nodes      []*node.Node
+type StartVerifyResponse struct {
+	UserId    string
+	WPointHex string
 }

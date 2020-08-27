@@ -19,7 +19,7 @@ package interfaces
 import "dkms/types"
 
 type KeyRegisterRequest struct {
-	EncryptedPoints []string
-	NodeAddress     []types.Address
-	CommitData      types.CommitData
+	EncryptedPoints []string         `json:"encryptedPoints"`
+	NodeAddress     []types.Address  `json:"nodeAddress"`
+	CommitData      types.CommitData `json:"commitData"`
 }

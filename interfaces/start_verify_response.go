@@ -17,6 +17,6 @@
 package interfaces
 
 type StartVerifyResponse struct {
-	UserId    string
-	WPointHex string
+	UserId    string `json:"userId"`
+	WScalarHex string`json:"wScalarHex"`
 }

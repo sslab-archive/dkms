@@ -1,13 +1,16 @@
 package bivss
 
 import (
+	"encoding/hex"
+	"fmt"
+
 	"dkms/key"
 	"dkms/node"
 	"dkms/share"
-	"fmt"
 
 	"github.com/sirupsen/logrus"
 	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 type EncryptedData struct {
@@ -16,7 +19,6 @@ type EncryptedData struct {
 	encryptedPoint kyber.Point
 	committedPoint kyber.Point
 }
-
 
 type RecoveryData struct {
 	fromNodeIdx    int
@@ -54,6 +56,34 @@ func MakeEncryptShares(suite key.Suite, CommitBasePoint kyber.Point, publicKeys 
 	}
 
 	return priPoly, encData, nil
+}
+
+func PointToHex(p kyber.Point) (string, error) {
+	b, err := p.MarshalBinary()
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
+func HexToPoint(hexString string, g kyber.Group) (kyber.Point, error) {
+	b, err := hex.DecodeString(hexString)
+
+	if err != nil {
+		return nil, err
+	}
+	p := g.Point()
+	err = p.UnmarshalBinary(b)
+
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func GenerateWScalar(g kyber.Group) kyber.Scalar {
+	ret
+	g.Scalar().Pick(random.New())
 }
 
 func MakeRecoveryData(failIndex int) *RecoveryData {

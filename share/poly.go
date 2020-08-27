@@ -18,9 +18,9 @@ package share
 
 import (
 	"crypto/cipher"
-	"encoding/hex"
 	"errors"
 
+	"dkms/share/bivss"
 	"dkms/types"
 
 	"go.dedis.ch/kyber/v3"
@@ -35,19 +35,19 @@ type BiPoly struct {
 
 type CommitData struct {
 	g            kyber.Group // Cryptographic group
-	b            kyber.Point // Base point
+	h            kyber.Point // Base point
 	secretCommit kyber.Point
 	xCommits     []kyber.Point // Commitments to coefficients of the secret sharing polynomial
 	yCommits     []kyber.Point // Commitments to coefficients of the secret sharing polynomial
 }
 
 func (c *CommitData) Marshal() (*types.CommitData, error) {
-	secretCommitBinary, err := c.secretCommit.MarshalBinary()
+	secretCommitStr, err := bivss.PointToHex(c.secretCommit)
 	if err != nil {
 		return nil, err
 	}
 
-	baseBinary, err := c.b.MarshalBinary()
+	baseStr, err := bivss.PointToHex(c.h)
 	if err != nil {
 		return nil, err
 	}
@@ -55,26 +55,26 @@ func (c *CommitData) Marshal() (*types.CommitData, error) {
 	XCommit := make([]string, len(c.xCommits))
 	YCommit := make([]string, len(c.yCommits))
 	for _, v := range c.xCommits {
-		b, err := v.MarshalBinary()
+		str, err := bivss.PointToHex(v)
 		if err != nil {
 			return nil, err
 		}
 
-		XCommit = append(XCommit, hex.EncodeToString(b))
+		XCommit = append(XCommit, str)
 	}
 
 	for _, v := range c.yCommits {
-		b, err := v.MarshalBinary()
+		str, err := bivss.PointToHex(v)
 		if err != nil {
 			return nil, err
 		}
 
-		YCommit = append(YCommit, hex.EncodeToString(b))
+		YCommit = append(YCommit, str)
 	}
 
 	d := &types.CommitData{
-		BasePoint:    hex.EncodeToString(baseBinary),
-		SecretCommit: hex.EncodeToString(secretCommitBinary),
+		BasePoint:    baseStr,
+		SecretCommit: secretCommitStr,
 		XCommits:     XCommit,
 		YCommits:     YCommit,
 	}
@@ -83,54 +83,33 @@ func (c *CommitData) Marshal() (*types.CommitData, error) {
 }
 
 func (c *CommitData) UnMarshal(rawData *types.CommitData) error {
-	decodeSecretCommit, err := hex.DecodeString(rawData.SecretCommit)
+	var err error
+	c.secretCommit, err = bivss.HexToPoint(rawData.SecretCommit, c.g)
 	if err != nil {
 		return err
 	}
 
-	c.secretCommit = c.g.Point()
-	err = c.secretCommit.UnmarshalBinary(decodeSecretCommit)
-	if err != nil {
-		return err
-	}
-
-	decodeBasePoint, err := hex.DecodeString(rawData.BasePoint)
-	if err != nil {
-		return err
-	}
-
-	c.b = c.g.Point()
-	err = c.secretCommit.UnmarshalBinary(decodeBasePoint)
+	c.h, err = bivss.HexToPoint(rawData.BasePoint, c.g)
 	if err != nil {
 		return err
 	}
 
 	xCommit := make([]kyber.Point, len(rawData.XCommits))
 	for i, v := range rawData.XCommits {
-		b, err := hex.DecodeString(v)
+		p, err := bivss.HexToPoint(v, c.g)
 		if err != nil {
 			return err
 		}
-
-		xCommit[i] = c.g.Point()
-		err = xCommit[i].UnmarshalBinary(b)
-		if err != nil {
-			return err
-		}
+		xCommit[i] = p
 	}
 
 	yCommit := make([]kyber.Point, len(rawData.YCommits))
 	for i, v := range rawData.YCommits {
-		b, err := hex.DecodeString(v)
+		p, err := bivss.HexToPoint(v, c.g)
 		if err != nil {
 			return err
 		}
-
-		yCommit[i] = c.g.Point()
-		err = yCommit[i].UnmarshalBinary(b)
-		if err != nil {
-			return err
-		}
+		yCommit[i] = p
 	}
 
 	c.xCommits = xCommit
@@ -274,7 +253,7 @@ func (yp *YPoly) U() int {
 	return len(yp.yCoeffs)
 }
 
-// Shares creates a list of n private shares b(x,1),...,p(x,n).
+// Shares creates a list of n private shares h(x,1),...,p(x,n).
 func (b *BiPoly) Shares(n int) []*YPoly {
 	shares := make([]*YPoly, n)
 	for i := range shares {
@@ -291,7 +270,7 @@ func (b *BiPoly) Commit(bp kyber.Point) CommitData {
 
 	return CommitData{
 		g:            b.g,
-		b:            bp,
+		h:            bp,
 		secretCommit: secretCommit,
 		xCommits:     xCommits,
 		yCommits:     yCommits,

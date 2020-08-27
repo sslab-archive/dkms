@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2019 hea9549
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,6 @@
 package interfaces
 
 type VerifyChallengeRequest struct {
-	UserId    string
-
+	UserId    string `json:"userId"`
+	CScalarHex string `json:"cScalarHex"`
 }

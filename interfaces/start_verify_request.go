@@ -17,5 +17,5 @@
 package interfaces
 
 type StartVerifyRequest struct {
-	UserId string
+	UserId string`json:"userId"`
 }

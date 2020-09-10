@@ -23,8 +23,6 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"dkms/server/types"
-
 	"go.dedis.ch/kyber/v3"
 )
 
@@ -44,84 +42,6 @@ type CommitData struct {
 	YCommits     []kyber.Point // Commitments to coefficients of the secret sharing polynomial
 }
 
-
-// TODO: marshal, unmarshal have to be change using 기본머시기
-func (c *CommitData) Marshal() (*types.PolyCommitData, error) {
-	secretCommitStr, err := PointToHex(c.secretCommit)
-	if err != nil {
-		return nil, err
-	}
-
-	baseStr, err := PointToHex(c.h)
-	if err != nil {
-		return nil, err
-	}
-
-	XCommit := make([]string, len(c.xCommits))
-	YCommit := make([]string, len(c.yCommits))
-	for _, v := range c.xCommits {
-		str, err := PointToHex(v)
-		if err != nil {
-			return nil, err
-		}
-
-		XCommit = append(XCommit, str)
-	}
-
-	for _, v := range c.yCommits {
-		str, err := PointToHex(v)
-		if err != nil {
-			return nil, err
-		}
-
-		YCommit = append(YCommit, str)
-	}
-
-	d := &types.PolyCommitData{
-		BasePointHex:    baseStr,
-		SecretCommitHex: secretCommitStr,
-		XCommitsHex:     XCommit,
-		YCommitsHex:     YCommit,
-	}
-
-	return d, nil
-}
-
-func (c *CommitData) UnMarshal(rawData types.PolyCommitData) error {
-	var err error
-	c.secretCommit, err = HexToPoint(rawData.SecretCommitHex, c.g)
-	if err != nil {
-		return err
-	}
-
-	c.h, err = HexToPoint(rawData.BasePointHex, c.g)
-	if err != nil {
-		return err
-	}
-
-	xCommit := make([]kyber.Point, len(rawData.XCommitsHex))
-	for i, v := range rawData.XCommitsHex {
-		p, err := HexToPoint(v, c.g)
-		if err != nil {
-			return err
-		}
-		xCommit[i] = p
-	}
-
-	yCommit := make([]kyber.Point, len(rawData.YCommitsHex))
-	for i, v := range rawData.YCommitsHex {
-		p, err := HexToPoint(v, c.g)
-		if err != nil {
-			return err
-		}
-		yCommit[i] = p
-	}
-
-	c.xCommits = xCommit
-	c.yCommits = yCommit
-
-	return nil
-}
 
 type XPoly struct {
 	g        kyber.Group // Cryptographic group
@@ -270,18 +190,18 @@ func (b *BiPoly) Shares(n int) []*YPoly {
 	return shares
 }
 
-func (b *BiPoly) Commit(bp kyber.Point) CommitData {
+func (b *BiPoly) Commit(commitBasePoint kyber.Point) CommitData {
 	xCommits := make([]kyber.Point, b.T())
 	yCommits := make([]kyber.Point, b.T())
 
-	secretCommit := b.g.Point().Mul(b.secret, bp)
+	secretCommit := b.g.Point().Mul(b.secret, commitBasePoint)
 
 	return CommitData{
-		g:            b.g,
-		h:            bp,
-		secretCommit: secretCommit,
-		xCommits:     xCommits,
-		yCommits:     yCommits,
+		G:            b.g,
+		H:            commitBasePoint,
+		SecretCommit: secretCommit,
+		XCommits:     xCommits,
+		YCommits:     yCommits,
 	}
 }
 

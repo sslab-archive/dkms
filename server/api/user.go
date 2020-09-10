@@ -49,8 +49,8 @@ func (u *User) RegisterUser(c *gin.Context) {
 		return
 	}
 
-	commit := share.NewCommitData(u.shareService.Suite)
-	if err := commit.UnMarshal(requestBody.CommitData); err != nil {
+	commit,err := requestBody.CommitData.ToDomain(u.shareService.Suite)
+	if err != nil {
 		server.InternalServerError(c, err)
 		return
 	}
@@ -68,12 +68,6 @@ func (u *User) RegisterUser(c *gin.Context) {
 	}
 
 	xPoly, err := share.LagrangeForXPoly(u.shareService.Suite, points[requestBody.U:], requestBody.T)
-	if err != nil {
-		server.InternalServerError(c, err)
-		return
-	}
-
-	err = commit.UnMarshal(requestBody.CommitData)
 	if err != nil {
 		server.InternalServerError(c, err)
 		return

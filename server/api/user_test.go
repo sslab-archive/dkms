@@ -2,6 +2,9 @@ package api
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -10,6 +13,7 @@ import (
 	"dkms/share"
 	"dkms/user/mem"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
 )
@@ -27,6 +31,7 @@ func TestUser_RegisterUser(t *testing.T) {
 	secret := suite.Scalar().Pick(suite.RandomStream())
 	T := 3
 	U := 3
+	H := suite.Point().Pick(suite.XOF([]byte("H")))
 	biPoly, err := share.NewBiPoly(suite, T, U, secret, suite.RandomStream())
 	assert.NoError(t, err)
 
@@ -47,17 +52,30 @@ func TestUser_RegisterUser(t *testing.T) {
 	encMsg, err := shareService.PointsToEncryptedMessage(rawPoints)
 	assert.NoError(t, err)
 
+	commitData := biPoly.Commit(H)
+	typeCommit, err := types.NewPolyCommitData(commitData)
+	assert.NoError(t, err)
+
 	reqBody := interfaces.KeyRegisterRequest{
 		UserId:        "hea9549",
 		EncryptedData: *encMsg,
 		Nodes:         make([]types.Node, 0),
-		CommitData:    types.PolyCommitData{},
+		CommitData:    *typeCommit,
 		T:             T,
 		U:             U,
 	}
 
-	req := httptest.NewRequest("POST", "", bytes.NewReader())
-	c := req.Context()
+	jsonRequest, err := json.Marshal(reqBody)
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest("POST", "TESTUSER", bytes.NewReader(jsonRequest))
+	w := httptest.NewRecorder()
 	api := NewUser(repo, *shareService)
-	api.RegisterUser(c)
+
+	router := gin.New()
+	router.Handle(http.MethodPost, "TESTUSER", api.RegisterUser)
+	router.ServeHTTP(w, req)
+
+	fmt.Println(w.Body)
+
 }

@@ -16,11 +16,17 @@
 
 package interfaces
 
-import "dkms/types"
+import (
+	"dkms/server/types"
+	"dkms/share"
+)
 
+type EncryptedMessage = share.EncryptedMessage
 type KeyRegisterRequest struct {
-	UserId             string           `json:"userId"`
-	EncryptedPointsHex []string         `json:"encryptedPointsHex"`
-	NodeAddress        []types.Address  `json:"nodeAddress"`
-	CommitData         types.CommitData `json:"commitData"`
+	UserId        string           `json:"userId"`
+	EncryptedData EncryptedMessage `json:"encryptedData"`
+	Nodes         []types.Node
+	CommitData    types.PolyCommitData `json:"commitData"`
+	T             int                  `json:"t"`
+	U             int                  `json:"u"`
 }

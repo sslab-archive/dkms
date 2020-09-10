@@ -25,14 +25,14 @@ type UserRepository struct {
 	nodes map[string]user.User
 }
 
-func NewNodeRepository() *UserRepository {
+func NewUserRepository() *UserRepository {
 	return &UserRepository{
 		nodes: make(map[string]user.User),
 	}
 }
 
 func (ur *UserRepository) Save(data *user.User) error {
-	ur.nodes[data.ID()] = *data
+	ur.nodes[data.Id] = *data
 	return nil
 }
 

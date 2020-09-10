@@ -25,5 +25,6 @@ type User struct {
 	Id         string
 	PolyCommit share.CommitData
 	MyYPoly    share.YPoly
-	Nodes      []*node.Node
+	MyXPoly    share.XPoly
+	Nodes      []node.Node
 }

@@ -17,27 +17,29 @@
 package node
 
 import (
-	"dkms/types"
+	"dkms/server/types"
 
 	"go.dedis.ch/kyber/v3"
 )
 
-func NewNode(id string) *Node {
+func NewNode(id string, addr types.Address, commitBase kyber.Point) *Node {
 	return &Node{
-		id:      id,
-		NodeIdx: 0,
-		PubKey:  nil,
-		Address: "",
-		Status:  types.AVAILABLE,
+		id:           id,
+		PubKey:       nil,
+		Address:      addr,
+		CommitBase:   commitBase,
+		CommitPoints: make([]kyber.Point, 0),
+		Status:       types.AVAILABLE,
 	}
 }
 
 type Node struct {
-	id      string
-	NodeIdx int
-	PubKey  kyber.Point
-	Address string
-	Status  types.Status
+	id           string
+	PubKey       kyber.Point
+	Address      types.Address
+	CommitBase   kyber.Point
+	CommitPoints []kyber.Point
+	Status       types.Status
 }
 
 func (d *Node) ID() string {

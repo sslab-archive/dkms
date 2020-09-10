@@ -52,7 +52,5 @@ func (s *Service) Stop() error {
 }
 
 func (s *Service) requestVerify(u user.User) {
-	n := u.Nodes[0]
-	n.
 
 }

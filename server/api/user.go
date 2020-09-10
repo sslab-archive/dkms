@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2019 hea9549
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,14 +17,17 @@
 package api
 
 import (
-	"dkms/interfaces"
-	"dkms/server"
-	"dkms/share"
-	"dkms/share/bivss"
-	"dkms/user"
+	"encoding/hex"
 	"errors"
+
+	"dkms/node"
+	"dkms/server"
+	"dkms/server/interfaces"
+	"dkms/server/types"
+	"dkms/share"
+	"dkms/user"
+
 	"github.com/gin-gonic/gin"
-	"go.dedis.ch/kyber/v3"
 )
 
 type User struct {
@@ -46,28 +49,60 @@ func (u *User) RegisterUser(c *gin.Context) {
 		return
 	}
 
-	commit := share.CommitData{}
+	commit := share.NewCommitData(u.shareService.Suite)
 	if err := commit.UnMarshal(requestBody.CommitData); err != nil {
 		server.InternalServerError(c, err)
 		return
 	}
 
-	points := make([]kyber.Point, 0)
-	for _, pointHex := range requestBody.EncryptedPointsHex {
-		point, err := share.HexToPoint(pointHex,u.shareService.Suite)
-		if err!=nil{
+	points, err := u.shareService.EncryptedMessageToPoints(requestBody.EncryptedData)
+	if err != nil {
+		server.InternalServerError(c, err)
+		return
+	}
+
+	yPoly, err := share.LagrangeForYPoly(u.shareService.Suite, points[:requestBody.U], requestBody.U)
+	if err != nil {
+		server.InternalServerError(c, err)
+		return
+	}
+
+	xPoly, err := share.LagrangeForXPoly(u.shareService.Suite, points[requestBody.U:], requestBody.T)
+	if err != nil {
+		server.InternalServerError(c, err)
+		return
+	}
+
+	err = commit.UnMarshal(requestBody.CommitData)
+	if err != nil {
+		server.InternalServerError(c, err)
+		return
+	}
+
+	nodes := make([]node.Node, 0)
+	for _, oneNode := range requestBody.Nodes {
+		n, err := oneNode.ToDomain(u.shareService.Suite)
+		if err != nil {
 			server.InternalServerError(c, err)
 			return
 		}
-		points = append(points, point)
+
+		nodes = append(nodes, *n)
 	}
-	u.shareService.
-	//userIda := user.User{
-	//	Id:         requestBody.UserId,
-	//	PolyCommit: commit,
-	//	MyYPoly:    share.YPoly{},
-	//	Nodes:      nil,
-	//}
+
+	registerUser := user.User{
+		Id:         requestBody.UserId,
+		PolyCommit: *commit,
+		MyYPoly:    *yPoly,
+		MyXPoly:    *xPoly,
+		Nodes:      nodes,
+	}
+
+	err = u.repository.Save(&registerUser)
+	if err != nil {
+		server.InternalServerError(c, err)
+		return
+	}
 }
 
 func (u *User) StartVerify(c *gin.Context) {
@@ -99,4 +134,20 @@ func (u *User) VerifyChallenge(c *gin.Context) {
 		server.BadRequestError(c, errors.New("path variable :id does not exists"))
 		return
 	}
+}
+
+func pointToTypes(bp share.BiPoint) (*types.BiPoint, error) {
+	b, err := bp.V.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	return &types.BiPoint{
+		X:         bp.X,
+		Y:         bp.Y,
+		ScalarHex: hex.EncodeToString(b),
+	}, nil
+}
+
+func pointFromTypes(bp *types.BiPoint) (share.BiPoint, error) {
+	panic("impl me!")
 }

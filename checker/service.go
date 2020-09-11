@@ -37,20 +37,9 @@ func (s *Service) AddCheckUser(user user.User) error {
 	s.checkUsers[user.Id] = user
 	return nil
 }
-func (s *Service) RemoveCheckUser(user user.User) error {
-	if _,ok := s.checkUsers[user.Id]; ok{
-		delete(s.checkUsers,user.Id)
+func (s *Service) RemoveCheckUser(userId string) error {
+	if _,ok := s.checkUsers[userId]; ok{
+		delete(s.checkUsers,userId)
 	}
 	return nil
-}
-func (s *Service) Run() error {
-
-}
-
-func (s *Service) Stop() error {
-
-}
-
-func (s *Service) requestVerify(u user.User) {
-
 }

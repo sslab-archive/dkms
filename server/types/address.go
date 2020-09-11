@@ -1,6 +1,5 @@
 package types
 
-type Address struct {
-	Ip   string `json:"ip"`
-	Port string `json:"port"`
-}
+import "dkms/node"
+
+type Address = node.Address

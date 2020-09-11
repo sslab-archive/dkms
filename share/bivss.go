@@ -25,7 +25,7 @@ type RecoveryData struct {
 	CommitData     CommitData
 }
 
-func MakeEncryptShares(suite Suite, CommitBasePoint kyber.Point, publicKeys []kyber.Point, secret kyber.Scalar, t int, u int) (*BiPoly, [][]*EncryptedData, error) {
+func MakeEncryptShares(suite node.Suite, CommitBasePoint kyber.Point, publicKeys []kyber.Point, secret kyber.Scalar, t int, u int) (*BiPoly, [][]*EncryptedData, error) {
 	n := len(publicKeys)
 	encData := make([][]*EncryptedData, n)
 	for i := range encData {
@@ -103,7 +103,6 @@ func HexToScalar(hexString string, g kyber.Group) (kyber.Scalar, error) {
 	return s, nil
 }
 
-
 func GenerateWScalar(g kyber.Group) kyber.Scalar {
 	return g.Scalar().Pick(random.New())
 }
@@ -117,6 +116,44 @@ func GenerateRScalar(g kyber.Group, w kyber.Scalar, c kyber.Scalar, point BiPoin
 	r := g.Scalar()
 	r = r.Sub(r, pc)
 	return r
+}
+
+func VerifyRScalar(g kyber.Group, w kyber.Scalar, c kyber.Scalar, r kyber.Scalar, x int, y int, publicKey kyber.Point, commitData CommitData, encryptedPoint kyber.Point) {
+
+}
+
+func verifyCommitPhase(g kyber.Group, w kyber.Scalar, c kyber.Scalar, r kyber.Scalar, x int, y int, commitData CommitData) bool {
+
+	xV := g.Point().Null()
+	xI := g.Scalar().SetInt64(int64(x))
+	finV := g.Point().Null()
+	for i := len(commitData.XCommits) - 1; i >= 0; i-- {
+		xV.Mul(xI, xV)
+		xV.Add(xV, commitData.XCommits[i])
+	}
+	xV.Mul(xI, xV)
+
+	yV := g.Point().Null()
+	yI := g.Scalar().SetInt64(int64(y))
+	for i := len(commitData.YCommits) - 1; i >= 0; i-- {
+		yV.Mul(yI, yV)
+		yV.Add(yV, commitData.YCommits[i])
+	}
+	yV.Mul(yI, yV)
+
+	finV.Add(finV, commitData.SecretCommit)
+	finV.Add(finV, xV)
+	finV.Add(finV, yV)
+
+	finV.Mul(c, finV)
+	finV.Mul(r, finV)
+
+	committedW := g.Point().Mul(w, commitData.H)
+	return finV.Equal(committedW)
+}
+
+func verifyPublicPhase(g kyber.Group, w kyber.Scalar, c kyber.Scalar, r kyber.Scalar, x int, y int, publicKey kyber.Point, encryptedPoint kyber.Point) bool {
+	panic("impl me!")
 }
 
 func Recover([]*RecoveryData) (*node.Node, error) {

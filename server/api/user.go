@@ -17,11 +17,10 @@
 package api
 
 import (
-	"encoding/hex"
 	"errors"
+	"net/http"
 
 	"dkms/node"
-	"dkms/server"
 	"dkms/server/interfaces"
 	"dkms/server/types"
 	"dkms/share"
@@ -31,53 +30,53 @@ import (
 )
 
 type User struct {
-	repository   user.Repository
-	shareService share.Service
+	repository  user.Repository
+	nodeService node.Service
 }
 
-func NewUser(repository user.Repository, shareService share.Service) *User {
+func NewUser(repository user.Repository, shareService node.Service) *User {
 	return &User{
-		repository:   repository,
-		shareService: shareService,
+		repository:  repository,
+		nodeService: shareService,
 	}
 }
 
 func (u *User) RegisterUser(c *gin.Context) {
 	var requestBody interfaces.KeyRegisterRequest
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		server.BadRequestError(c, errors.New("failed to bind key register request body"))
+		BadRequestError(c, errors.New("failed to bind key register request body"))
 		return
 	}
 
-	commit,err := requestBody.CommitData.ToDomain(u.shareService.Suite)
+	commit, err := requestBody.CommitData.ToDomain(u.nodeService.Suite)
 	if err != nil {
-		server.InternalServerError(c, err)
+		InternalServerError(c, err)
 		return
 	}
 
-	points, err := u.shareService.EncryptedMessageToPoints(requestBody.EncryptedData)
+	points, err := types.EncryptedMessageToPoints(requestBody.EncryptedData, u.nodeService.GetMyPrivateKey(), u.nodeService.Suite)
 	if err != nil {
-		server.InternalServerError(c, err)
+		InternalServerError(c, err)
 		return
 	}
 
-	yPoly, err := share.LagrangeForYPoly(u.shareService.Suite, points[:requestBody.U], requestBody.U)
+	yPoly, err := share.LagrangeForYPoly(u.nodeService.Suite, points[:requestBody.U], requestBody.U)
 	if err != nil {
-		server.InternalServerError(c, err)
+		InternalServerError(c, err)
 		return
 	}
 
-	xPoly, err := share.LagrangeForXPoly(u.shareService.Suite, points[requestBody.U:], requestBody.T)
+	xPoly, err := share.LagrangeForXPoly(u.nodeService.Suite, points[requestBody.U:], requestBody.T)
 	if err != nil {
-		server.InternalServerError(c, err)
+		InternalServerError(c, err)
 		return
 	}
 
 	nodes := make([]node.Node, 0)
 	for _, oneNode := range requestBody.Nodes {
-		n, err := oneNode.ToDomain(u.shareService.Suite)
+		n, err := oneNode.ToDomain(u.nodeService.Suite)
 		if err != nil {
-			server.InternalServerError(c, err)
+			InternalServerError(c, err)
 			return
 		}
 
@@ -94,54 +93,15 @@ func (u *User) RegisterUser(c *gin.Context) {
 
 	err = u.repository.Save(&registerUser)
 	if err != nil {
-		server.InternalServerError(c, err)
-		return
-	}
-}
-
-func (u *User) StartVerify(c *gin.Context) {
-	var requestBody interfaces.StartVerifyRequest
-	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		server.BadRequestError(c, errors.New("failed to bind start verify request body"))
-		return
-	}
-	var pathParams struct {
-		ID string `uri:"id" binding:"required"`
-	}
-	if err := c.ShouldBindUri(&pathParams); err != nil {
-		server.BadRequestError(c, errors.New("path variable :id does not exists"))
+		InternalServerError(c, err)
 		return
 	}
 
-}
-
-func (u *User) VerifyChallenge(c *gin.Context) {
-	var requestBody interfaces.VerifyChallengeRequest
-	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		server.BadRequestError(c, errors.New("failed to bind verify challenge request body"))
-		return
-	}
-	var pathParams struct {
-		ID string `uri:"id" binding:"required"`
-	}
-	if err := c.ShouldBindUri(&pathParams); err != nil {
-		server.BadRequestError(c, errors.New("path variable :id does not exists"))
-		return
-	}
-}
-
-func pointToTypes(bp share.BiPoint) (*types.BiPoint, error) {
-	b, err := bp.V.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	return &types.BiPoint{
-		X:         bp.X,
-		Y:         bp.Y,
-		ScalarHex: hex.EncodeToString(b),
-	}, nil
-}
-
-func pointFromTypes(bp *types.BiPoint) (share.BiPoint, error) {
-	panic("impl me!")
+	c.JSON(http.StatusOK, interfaces.KeyRegisterResponse{
+		UserId: registerUser.Id,
+		T:      xPoly.T(),
+		U:      yPoly.U(),
+		Commit: requestBody.CommitData,
+		Nodes:  requestBody.Nodes,
+	})
 }

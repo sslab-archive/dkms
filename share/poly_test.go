@@ -23,10 +23,10 @@ func TestLagrangeForYPoly(t *testing.T) {
 	yCoeffs[1] = suite.Scalar().SetInt64(int64(5))
 
 	poly := BiPoly{
-		g:       suite,
-		secret:  secret,
-		xCoeffs: xCoeffs,
-		yCoeffs: yCoeffs,
+		G:       suite,
+		Secret:  secret,
+		XCoeffs: xCoeffs,
+		YCoeffs: yCoeffs,
 	} // t = u = 3
 
 	//y1 := poly.GetYPoly(1) // const 15

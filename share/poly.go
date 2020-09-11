@@ -19,7 +19,6 @@ package share
 import (
 	"bytes"
 	"crypto/cipher"
-	"crypto/elliptic"
 	"encoding/binary"
 	"errors"
 
@@ -27,21 +26,19 @@ import (
 )
 
 type BiPoly struct {
-	elliptic.Curve
-	g       kyber.Group // Cryptographic group
-	secret  kyber.Scalar
-	xCoeffs []kyber.Scalar // Coefficients of X the polynomial
-	yCoeffs []kyber.Scalar // Coefficients of Y the polynomial
+	G       kyber.Group // Cryptographic group
+	Secret  kyber.Scalar
+	XCoeffs []kyber.Scalar // Coefficients of X the polynomial
+	YCoeffs []kyber.Scalar // Coefficients of Y the polynomial
 }
 
 type CommitData struct {
 	G            kyber.Group // Cryptographic group
 	H            kyber.Point // Base point
 	SecretCommit kyber.Point
-	XCommits     []kyber.Point // Commitments to coefficients of the secret sharing polynomial
-	YCommits     []kyber.Point // Commitments to coefficients of the secret sharing polynomial
+	XCommits     []kyber.Point // Commitments to coefficients of the Secret sharing polynomial
+	YCommits     []kyber.Point // Commitments to coefficients of the Secret sharing polynomial
 }
-
 
 type XPoly struct {
 	g        kyber.Group // Cryptographic group
@@ -78,71 +75,76 @@ func NewBiPoly(group kyber.Group, t int, u int, s kyber.Scalar, rand cipher.Stre
 	for i := 0; i < u-1; i++ {
 		yCoeffs[i] = group.Scalar().Pick(rand)
 	}
-	return &BiPoly{g: group, xCoeffs: xCoeffs, yCoeffs: yCoeffs}, nil
+	return &BiPoly{
+		G:       group,
+		Secret:  s,
+		XCoeffs: xCoeffs,
+		YCoeffs: yCoeffs,
+	}, nil
 }
 
 func (b *BiPoly) GetXPoly(y int64) *XPoly {
-	yi := b.g.Scalar().SetInt64(int64(y))
-	yValue := b.g.Scalar().Zero()
+	yi := b.G.Scalar().SetInt64(int64(y))
+	yValue := b.G.Scalar().Zero()
 	for k := b.U() - 2; k >= 0; k-- {
 		yValue.Mul(yValue, yi)
-		yValue.Add(yValue, b.yCoeffs[k])
+		yValue.Add(yValue, b.YCoeffs[k])
 	}
-	constant := b.g.Scalar().Zero()
-	constant.Add(b.secret, yValue)
+	constant := b.G.Scalar().Zero()
+	constant.Add(b.Secret, yValue)
 	return &XPoly{
-		g:        b.g,
+		g:        b.G,
 		Y:        y,
 		constant: constant,
-		xCoeffs:  b.xCoeffs,
+		xCoeffs:  b.XCoeffs,
 	}
 }
 
 func (b *BiPoly) GetYPoly(x int64) *YPoly {
-	xi := b.g.Scalar().SetInt64(int64(x))
-	xValue := b.g.Scalar().Zero()
+	xi := b.G.Scalar().SetInt64(int64(x))
+	xValue := b.G.Scalar().Zero()
 	for j := b.T() - 2; j >= 0; j-- {
 		xValue.Mul(xValue, xi)
-		xValue.Add(xValue, b.xCoeffs[j])
+		xValue.Add(xValue, b.XCoeffs[j])
 	}
-	constant := b.g.Scalar().Zero()
-	constant.Add(b.secret, xValue)
+	constant := b.G.Scalar().Zero()
+	constant.Add(b.Secret, xValue)
 	return &YPoly{
-		g:        b.g,
+		g:        b.G,
 		X:        x,
 		constant: constant,
-		yCoeffs:  b.yCoeffs,
+		yCoeffs:  b.YCoeffs,
 	}
 }
 
 func (b *BiPoly) Eval(x int64, y int64) BiPoint {
-	xi := b.g.Scalar().SetInt64(x)
-	xValue := b.g.Scalar().Zero()
+	xi := b.G.Scalar().SetInt64(x)
+	xValue := b.G.Scalar().Zero()
 	for j := b.T() - 2; j >= 0; j-- {
-		xValue.Add(xValue, b.xCoeffs[j])
+		xValue.Add(xValue, b.XCoeffs[j])
 		xValue.Mul(xValue, xi)
 	}
 
-	yi := b.g.Scalar().SetInt64(y)
-	yValue := b.g.Scalar().Zero()
+	yi := b.G.Scalar().SetInt64(y)
+	yValue := b.G.Scalar().Zero()
 	for k := b.U() - 2; k >= 0; k-- {
-		yValue.Add(yValue, b.yCoeffs[k])
+		yValue.Add(yValue, b.YCoeffs[k])
 		yValue.Mul(yValue, yi)
 	}
-	totalValue := b.g.Scalar().Zero()
+	totalValue := b.G.Scalar().Zero()
 	totalValue.Add(xValue, yValue)
-	totalValue.Add(totalValue, b.secret)
+	totalValue.Add(totalValue, b.Secret)
 
 	return BiPoint{x, y, totalValue}
 }
 
-// T returns the secret sharing threshold.
+// T returns the Secret sharing threshold.
 func (b *BiPoly) T() int {
-	return len(b.xCoeffs) + 1
+	return len(b.XCoeffs) + 1
 }
 
 func (b *BiPoly) U() int {
-	return len(b.yCoeffs) + 1
+	return len(b.YCoeffs) + 1
 }
 
 func (xp *XPoly) Eval(x int64) BiPoint {
@@ -191,13 +193,19 @@ func (b *BiPoly) Shares(n int) []*YPoly {
 }
 
 func (b *BiPoly) Commit(commitBasePoint kyber.Point) CommitData {
-	xCommits := make([]kyber.Point, b.T())
-	yCommits := make([]kyber.Point, b.T())
+	xCommits := make([]kyber.Point, b.T()-1)
+	yCommits := make([]kyber.Point, b.U()-1)
 
-	secretCommit := b.g.Point().Mul(b.secret, commitBasePoint)
+	secretCommit := b.G.Point().Mul(b.Secret, commitBasePoint)
 
+	for i := 0; i < b.T()-1; i++ {
+		xCommits[i] = b.G.Point().Mul(b.XCoeffs[i], commitBasePoint)
+	}
+	for i := 0; i < b.U()-1; i++ {
+		yCommits[i] = b.G.Point().Mul(b.YCoeffs[i], commitBasePoint)
+	}
 	return CommitData{
-		G:            b.g,
+		G:            b.G,
 		H:            commitBasePoint,
 		SecretCommit: secretCommit,
 		XCommits:     xCommits,
@@ -244,7 +252,41 @@ func LagrangeForYPoly(g kyber.Group, points []BiPoint, u int) (*YPoly, error) {
 }
 
 func LagrangeForXPoly(g kyber.Group, points []BiPoint, t int) (*XPoly, error) {
-	panic("impl me!")
+	y := points[0].Y
+	for _, p := range points {
+		if y != p.Y {
+			return nil, errors.New("not matched point")
+		}
+	}
+	points = points[:t]
+	var accPoly *PriPoly
+	var err error
+	for j := range points {
+		basis := lagrangeForXPolyBasis(g, j, points)
+		for i := range basis.coeffs {
+			basis.coeffs[i] = basis.coeffs[i].Mul(basis.coeffs[i], points[j].V)
+		}
+
+		if accPoly == nil {
+			accPoly = basis
+			continue
+		}
+
+		accPoly, err = accPoly.Add(basis)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if accPoly == nil {
+		return nil, errors.New("acc poly nil error")
+	}
+	return &XPoly{
+		g:        g,
+		Y:        y,
+		constant: accPoly.coeffs[0],
+		xCoeffs:  accPoly.coeffs[1:],
+	}, nil
+
 }
 
 func lagrangeForXPolyBasis(g kyber.Group, i int, xs []BiPoint) *PriPoly {

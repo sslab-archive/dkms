@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright 2019 hea9549
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,20 +14,14 @@
  * limitations under the License.
  */
 
-package user
+package api
 
-import (
-	"dkms/node"
-	"dkms/share"
-)
+import "github.com/gin-gonic/gin"
 
-type Monitoring = bool
+func BadRequestError(context *gin.Context, err error) {
+	context.JSON(400, gin.H{"error": err.Error()})
+}
 
-type User struct {
-	Id         string
-	PolyCommit share.CommitData
-	MyYPoly    share.YPoly
-	MyXPoly    share.XPoly
-	Nodes      []node.Node
-	Monitoring Monitoring
+func InternalServerError(context *gin.Context, err error) {
+	context.JSON(500, gin.H{"error": err.Error()})
 }

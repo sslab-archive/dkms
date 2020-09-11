@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2019 hea9549
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package server
+package interfaces
 
-import "github.com/gin-gonic/gin"
+import "dkms/server/types"
 
-func BadRequestError(context *gin.Context, err error) {
-	context.JSON(400, gin.H{"error": err.Error()})
-}
-
-func InternalServerError(context *gin.Context, err error) {
-	context.JSON(500, gin.H{"error": err.Error()})
+type KeyRegisterResponse struct {
+	UserId string
+	T      int
+	U      int
+	Commit types.PolyCommitData
+	Nodes  []types.Node
 }

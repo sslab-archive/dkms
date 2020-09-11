@@ -16,8 +16,54 @@
 
 package node
 
-import "dkms/server/types"
+import (
+	"dkms/share"
 
-type Service interface {
-	GetMyAddress() types.Address
+	"go.dedis.ch/kyber/v3"
+)
+
+type Suite interface {
+	kyber.Group
+	kyber.HashFactory
+	kyber.Encoding
+	kyber.XOFFactory
+	kyber.Random
+}
+
+type Service struct {
+	Suite        Suite
+	myPubKey     kyber.Point
+	myPrivateKey kyber.Scalar
+}
+
+func NewService(s Suite, privateBytes []byte) (*Service, error) {
+	prv := s.Scalar()
+	err := prv.UnmarshalBinary(privateBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Service{
+		Suite:        s,
+		myPubKey:     s.Point().Mul(prv, nil),
+		myPrivateKey: prv,
+	}, nil
+}
+
+func (s *Service) GetMyPublicKey() kyber.Point {
+	return s.myPubKey
+}
+
+func (s *Service) GetMyPrivateKey() kyber.Scalar {
+	return s.myPrivateKey
+}
+
+
+func MakeRecoveryData(yPoly share.YPoly, commitData share.CommitData, failIdx int64) *share.RecoveryData {
+	return &share.RecoveryData{
+		FromNodeIdx:    yPoly.X,
+		FailureNodeIdx: failIdx,
+		RecoveryPoint:  yPoly.Eval(failIdx),
+		CommitData:     commitData,
+	}
 }

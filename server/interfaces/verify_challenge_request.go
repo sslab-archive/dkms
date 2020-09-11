@@ -19,4 +19,5 @@ package interfaces
 type VerifyChallengeRequest struct {
 	UserId     string `json:"userId"`
 	CScalarHex string `json:"cScalarHex"`
+	WScalarHex string `json:"wScalarHex"`
 }

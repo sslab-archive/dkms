@@ -16,9 +16,6 @@
 
 package types
 
-type Status = string
+import "dkms/node"
 
-const (
-	AVAILABLE = Status("AVAILABLE")
-	CORRUPTED = Status("CORRUPTED")
-)
+type Status = node.Status

@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2019 hea9549
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,29 +17,40 @@
 package mem
 
 import (
-	"dkms/user"
 	"errors"
+
+	"dkms/user"
 )
 
 type UserRepository struct {
-	nodes map[string]user.User
+	users map[string]user.User
 }
 
 func NewUserRepository() *UserRepository {
 	return &UserRepository{
-		nodes: make(map[string]user.User),
+		users: make(map[string]user.User),
 	}
 }
 
 func (ur *UserRepository) Save(data *user.User) error {
-	ur.nodes[data.Id] = *data
+	ur.users[data.Id] = *data
 	return nil
 }
 
 func (ur *UserRepository) Get(id string) (user.User, error) {
-	n, ok := ur.nodes[id]
+	n, ok := ur.users[id]
 	if !ok {
 		return n, errors.New("key not found error")
 	}
 	return n, nil
+}
+
+func (ur *UserRepository) GetAllMonitoringUser() ([]user.User, error) {
+	resUser := make([]user.User, 0)
+	for _, u := range ur.users {
+		if u.Monitoring {
+			resUser = append(resUser, u)
+		}
+	}
+	return resUser, nil
 }

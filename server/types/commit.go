@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/hex"
 
+	"dkms/node"
 	"dkms/share"
 
 	"go.dedis.ch/kyber/v3"
@@ -16,18 +17,44 @@ type PolyCommitData struct {
 }
 
 func NewPolyCommitData(from share.CommitData) (*PolyCommitData, error) {
-	panic("impl me!")
-	//
-	//return &PolyCommitData{
-	//	CommitBasePointHex: "",
-	//	SecretCommitHex:    "",
-	//	XCommitsHex:        nil,
-	//	YCommitsHex:        nil,
-	//}, nil
+	commitBasePointBin, err := from.H.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	secretCommitBin, err := from.SecretCommit.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	xCommitHex := make([]string, 0)
+	for _, oneXCommit := range from.XCommits {
+		b, err := oneXCommit.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		xCommitHex = append(xCommitHex, hex.EncodeToString(b))
+	}
+
+	yCommitHex := make([]string, 0)
+	for _, oneYCommit := range from.YCommits {
+		b, err := oneYCommit.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		yCommitHex = append(yCommitHex, hex.EncodeToString(b))
+	}
+
+	return &PolyCommitData{
+		CommitBasePointHex: hex.EncodeToString(commitBasePointBin),
+		SecretCommitHex:    hex.EncodeToString(secretCommitBin),
+		XCommitsHex:        xCommitHex,
+		YCommitsHex:        yCommitHex,
+	}, nil
 
 }
 
-func (pcd *PolyCommitData) ToDomain(suite share.Suite) (*share.CommitData, error) {
+func (pcd *PolyCommitData) ToDomain(suite node.Suite) (*share.CommitData, error) {
 	commitBasePointBin, err := hex.DecodeString(pcd.CommitBasePointHex)
 	if err != nil {
 		return nil, err

@@ -1,13 +1,15 @@
-package share
+package node
 
 import (
 	"testing"
+
+	"dkms/share"
 
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
 )
 
-func MakePolynomial() BiPoly {
+func MakePolynomial() share.BiPoly {
 
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	secret := suite.Scalar().SetInt64(int64(10))
@@ -20,11 +22,11 @@ func MakePolynomial() BiPoly {
 	yCoeffs[0] = suite.Scalar().SetInt64(int64(4))
 	yCoeffs[1] = suite.Scalar().SetInt64(int64(5))
 
-	poly := BiPoly{
-		g:       suite,
-		secret:  secret,
-		xCoeffs: xCoeffs,
-		yCoeffs: yCoeffs,
+	poly := share.BiPoly{
+		G:       suite,
+		Secret:  secret,
+		XCoeffs: xCoeffs,
+		YCoeffs: yCoeffs,
 	}
 	return poly
 }

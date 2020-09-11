@@ -8,34 +8,29 @@ import (
 )
 
 type Node struct {
-	Address         Address
-	PublicKeyHex    string
-	CommitBaseHex   string
-	CommitPointsHex []string
+	Address            Address
+	PublicKeyHex       string
+	Index              int
+	EncryptedPointsHex []string
 }
 
-func (n *Node) ToDomain(suite share.Suite) (*node.Node, error) {
-	commitBase, err := share.HexToPoint(n.CommitBaseHex, suite)
-	if err != nil {
-		return nil, err
-	}
+func (n *Node) ToDomain(suite node.Suite) (*node.Node, error) {
 
 	pubKey, err := share.HexToPoint(n.PublicKeyHex, suite)
 	if err != nil {
 		return nil, err
 	}
 
-	domainNode := node.NewNode(n.Address.Ip+n.Address.Port, n.Address, commitBase)
-
-	commitPoints := make([]kyber.Point, 0)
-	for _, oneCommitPoint := range n.CommitPointsHex {
-		p, err := share.HexToPoint(oneCommitPoint, suite)
+	encryptedPoints := make([]kyber.Point, 0)
+	for _, oneEncryptedPoints := range n.EncryptedPointsHex {
+		p, err := share.HexToPoint(oneEncryptedPoints, suite)
 		if err != nil {
 			return nil, err
 		}
-		commitPoints = append(commitPoints, p)
+		encryptedPoints = append(encryptedPoints, p)
 	}
+	domainNode := node.NewNode(n.Address.Ip+n.Address.Port, n.Index, n.Address)
 	domainNode.PubKey = pubKey
-	domainNode.CommitPoints = commitPoints
+	domainNode.EncryptedPoints = encryptedPoints
 	return domainNode, nil
 }

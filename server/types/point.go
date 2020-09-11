@@ -1,6 +1,14 @@
 package types
 
-import "dkms/share"
+import (
+	"encoding/hex"
+	"encoding/json"
+
+	"dkms/node"
+	"dkms/share"
+
+	"go.dedis.ch/kyber/v3"
+)
 
 type BiPoint struct {
 	X         int64
@@ -20,7 +28,7 @@ func NewBiPoint(from share.BiPoint) (*BiPoint, error) {
 	}, nil
 }
 
-func (bp *BiPoint) ToDomain(suite share.Suite) (*share.BiPoint, error) {
+func (bp *BiPoint) ToDomain(suite node.Suite) (*share.BiPoint, error) {
 	s, err := share.HexToScalar(bp.ScalarHex, suite)
 	if err != nil {
 		return nil, err
@@ -30,4 +38,62 @@ func (bp *BiPoint) ToDomain(suite share.Suite) (*share.BiPoint, error) {
 		Y: bp.Y,
 		V: s,
 	}, err
+}
+
+func EncryptedMessageToPoints(encMessage share.EncryptedMessage, prvKey kyber.Scalar, suite node.Suite) ([]share.BiPoint, error) {
+	msg, err := share.Decrypt(suite, prvKey, encMessage)
+	typePoints := make([]BiPoint, 0)
+	err = json.Unmarshal(msg, &typePoints)
+
+	points := make([]share.BiPoint, 0)
+
+	for _, oneTypePoints := range typePoints {
+		pointBytes, err := hex.DecodeString(oneTypePoints.ScalarHex)
+		if err != nil {
+			return nil, err
+		}
+		p := suite.Scalar()
+		err = p.UnmarshalBinary(pointBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		points = append(points, share.BiPoint{
+			X: oneTypePoints.X,
+			Y: oneTypePoints.Y,
+			V: p,
+		})
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return points, nil
+}
+
+func PointsToEncryptedMessage(points []share.BiPoint, pubKey kyber.Point, suite node.Suite) (*share.EncryptedMessage, error) {
+	typePoints := make([]BiPoint, 0)
+	for _, onePoint := range points {
+		b, err := onePoint.V.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		tp := BiPoint{
+			X:         onePoint.X,
+			Y:         onePoint.Y,
+			ScalarHex: hex.EncodeToString(b),
+		}
+		typePoints = append(typePoints, tp)
+	}
+	pointsStr, err := json.Marshal(typePoints)
+	if err != nil {
+		return nil, err
+	}
+	encryptedMsg, err := share.Encrypt(suite, pubKey, pointsStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return encryptedMsg, nil
 }

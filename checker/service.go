@@ -16,30 +16,3 @@
 
 package checker
 
-import (
-	"dkms/user"
-	"errors"
-)
-
-type Service struct {
-	checkUsers map[string]user.User
-}
-
-func NewService() *Service {
-	return &Service{
-		checkUsers: make(map[string]user.User),
-	}
-}
-func (s *Service) AddCheckUser(user user.User) error {
-	if _,ok := s.checkUsers[user.Id]; ok{
-		return errors.New("already existed user")
-	}
-	s.checkUsers[user.Id] = user
-	return nil
-}
-func (s *Service) RemoveCheckUser(userId string) error {
-	if _,ok := s.checkUsers[userId]; ok{
-		delete(s.checkUsers,userId)
-	}
-	return nil
-}

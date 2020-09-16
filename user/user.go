@@ -28,6 +28,6 @@ type User struct {
 	PolyCommit share.CommitData
 	MyYPoly    share.YPoly
 	MyXPoly    share.XPoly
-	Nodes      []node.Node
+	Nodes      []*node.Node
 	Monitoring Monitoring
 }

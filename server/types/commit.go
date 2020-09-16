@@ -3,7 +3,6 @@ package types
 import (
 	"encoding/hex"
 
-	"dkms/node"
 	"dkms/share"
 
 	"go.dedis.ch/kyber/v3"
@@ -54,7 +53,7 @@ func NewPolyCommitData(from share.CommitData) (*PolyCommitData, error) {
 
 }
 
-func (pcd *PolyCommitData) ToDomain(suite node.Suite) (*share.CommitData, error) {
+func (pcd *PolyCommitData) ToDomain(suite share.Suite) (*share.CommitData, error) {
 	commitBasePointBin, err := hex.DecodeString(pcd.CommitBasePointHex)
 	if err != nil {
 		return nil, err

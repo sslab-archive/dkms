@@ -25,6 +25,13 @@ import (
 	"go.dedis.ch/kyber/v3"
 )
 
+type Suite interface {
+	kyber.Group
+	kyber.HashFactory
+	kyber.Encoding
+	kyber.XOFFactory
+	kyber.Random
+}
 type BiPoly struct {
 	G       kyber.Group // Cryptographic group
 	Secret  kyber.Scalar
@@ -84,11 +91,12 @@ func NewBiPoly(group kyber.Group, t int, u int, s kyber.Scalar, rand cipher.Stre
 }
 
 func (b *BiPoly) GetXPoly(y int64) *XPoly {
-	yi := b.G.Scalar().SetInt64(int64(y))
+	yi := b.G.Scalar().SetInt64(y)
 	yValue := b.G.Scalar().Zero()
 	for k := b.U() - 2; k >= 0; k-- {
-		yValue.Mul(yValue, yi)
 		yValue.Add(yValue, b.YCoeffs[k])
+		yValue.Mul(yValue, yi)
+
 	}
 	constant := b.G.Scalar().Zero()
 	constant.Add(b.Secret, yValue)
@@ -101,11 +109,11 @@ func (b *BiPoly) GetXPoly(y int64) *XPoly {
 }
 
 func (b *BiPoly) GetYPoly(x int64) *YPoly {
-	xi := b.G.Scalar().SetInt64(int64(x))
+	xi := b.G.Scalar().SetInt64(x)
 	xValue := b.G.Scalar().Zero()
 	for j := b.T() - 2; j >= 0; j-- {
-		xValue.Mul(xValue, xi)
 		xValue.Add(xValue, b.XCoeffs[j])
+		xValue.Mul(xValue, xi)
 	}
 	constant := b.G.Scalar().Zero()
 	constant.Add(b.Secret, xValue)
@@ -155,9 +163,8 @@ func (xp *XPoly) Eval(x int64) BiPoint {
 		xValue.Mul(xValue, xi)
 	}
 
-	totalValue := xp.g.Scalar().Zero()
+	totalValue := xp.g.Scalar().Add(xValue, xp.constant)
 
-	totalValue.Add(xValue, xp.constant)
 	return BiPoint{x, xp.Y, totalValue}
 }
 
@@ -168,9 +175,8 @@ func (yp *YPoly) Eval(y int64) BiPoint {
 		yValue.Add(yValue, yp.yCoeffs[k])
 		yValue.Mul(yValue, yi)
 	}
-	totalValue := yp.g.Scalar().Zero()
 
-	totalValue.Add(yValue, yp.constant)
+	totalValue := yp.g.Scalar().Add(yValue, yp.constant)
 	return BiPoint{yp.X, y, totalValue}
 }
 

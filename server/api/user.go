@@ -18,6 +18,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"dkms/node"
@@ -27,17 +28,18 @@ import (
 	"dkms/user"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type User struct {
 	repository  user.Repository
-	nodeService node.Service
+	nodeService *node.Service
 }
 
-func NewUser(repository user.Repository, shareService node.Service) *User {
+func NewUser(repository user.Repository, nodeService *node.Service) *User {
 	return &User{
 		repository:  repository,
-		nodeService: shareService,
+		nodeService: nodeService,
 	}
 }
 
@@ -72,7 +74,7 @@ func (u *User) RegisterUser(c *gin.Context) {
 		return
 	}
 
-	nodes := make([]node.Node, 0)
+	nodes := make([]*node.Node, 0)
 	for _, oneNode := range requestBody.Nodes {
 		n, err := oneNode.ToDomain(u.nodeService.Suite)
 		if err != nil {
@@ -80,7 +82,7 @@ func (u *User) RegisterUser(c *gin.Context) {
 			return
 		}
 
-		nodes = append(nodes, *n)
+		nodes = append(nodes, n)
 	}
 
 	registerUser := user.User{
@@ -96,7 +98,14 @@ func (u *User) RegisterUser(c *gin.Context) {
 		InternalServerError(c, err)
 		return
 	}
-
+	logrus.Info(fmt.Sprintf("------------User Registerd Information------------"))
+	logrus.Info(fmt.Sprintf("id : %s, t:%d, u:%d is registered. my index : %d", registerUser.Id, requestBody.T, requestBody.U, xPoly.Y))
+	logrus.Info(fmt.Sprintf("nodes size : %d", len(nodes)))
+	logrus.Info(fmt.Sprintf("------------Registered Nodes Information------------"))
+	logrus.Info(fmt.Sprintf("%5s|%15s|%8s|%5s|", "Index", "Address", "encPtLen", "pub"))
+	for _, oneNode := range nodes {
+		logrus.Info(fmt.Sprintf("%5d|%15s|%8d|%5s|", oneNode.Index, oneNode.Address.Address(), len(oneNode.EncryptedPoints), oneNode.PubKey.String()[:5]))
+	}
 	c.JSON(http.StatusOK, interfaces.KeyRegisterResponse{
 		UserId: registerUser.Id,
 		T:      xPoly.T(),

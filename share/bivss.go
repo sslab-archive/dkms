@@ -4,8 +4,6 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"dkms/node"
-
 	"github.com/sirupsen/logrus"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/util/random"
@@ -25,7 +23,7 @@ type RecoveryData struct {
 	CommitData     CommitData
 }
 
-func MakeEncryptShares(suite node.Suite, CommitBasePoint kyber.Point, publicKeys []kyber.Point, secret kyber.Scalar, t int, u int) (*BiPoly, [][]*EncryptedData, error) {
+func MakeEncryptShares(suite Suite, CommitBasePoint kyber.Point, publicKeys []kyber.Point, secret kyber.Scalar, t int, u int) (*BiPoly, [][]*EncryptedData, error) {
 	n := len(publicKeys)
 	encData := make([][]*EncryptedData, n)
 	for i := range encData {
@@ -114,48 +112,50 @@ func GenerateCScalar(g kyber.Group) kyber.Scalar {
 func GenerateRScalar(g kyber.Group, w kyber.Scalar, c kyber.Scalar, point BiPoint) kyber.Scalar {
 	pc := g.Scalar().Mul(point.V, c)
 	r := g.Scalar()
-	r = r.Sub(r, pc)
+	r = r.Sub(w, pc)
 	return r
 }
 
-func VerifyRScalar(g kyber.Group, w kyber.Scalar, c kyber.Scalar, r kyber.Scalar, x int, y int, publicKey kyber.Point, commitData CommitData, encryptedPoint kyber.Point) {
-
+func VerifyRScalar(g kyber.Group, w kyber.Scalar, c kyber.Scalar, r kyber.Scalar, x int, y int, publicKey kyber.Point, commitData CommitData, encryptedPoint kyber.Point) bool {
+	return verifyCommitPhase(g, w, c, r, x, y, commitData) && verifyPublicPhase(g, w, c, r, publicKey, encryptedPoint)
 }
 
+// DLEQ for commit data
 func verifyCommitPhase(g kyber.Group, w kyber.Scalar, c kyber.Scalar, r kyber.Scalar, x int, y int, commitData CommitData) bool {
 
 	xV := g.Point().Null()
 	xI := g.Scalar().SetInt64(int64(x))
 	finV := g.Point().Null()
 	for i := len(commitData.XCommits) - 1; i >= 0; i-- {
-		xV.Mul(xI, xV)
 		xV.Add(xV, commitData.XCommits[i])
+		xV.Mul(xI, xV)
 	}
-	xV.Mul(xI, xV)
 
 	yV := g.Point().Null()
 	yI := g.Scalar().SetInt64(int64(y))
 	for i := len(commitData.YCommits) - 1; i >= 0; i-- {
-		yV.Mul(yI, yV)
 		yV.Add(yV, commitData.YCommits[i])
+		yV.Mul(yI, yV)
 	}
-	yV.Mul(yI, yV)
 
 	finV.Add(finV, commitData.SecretCommit)
 	finV.Add(finV, xV)
 	finV.Add(finV, yV)
-
-	finV.Mul(c, finV)
-	finV.Mul(r, finV)
-
+	// finV = committed Eval
+	cXG := g.Point().Mul(c, finV)
+	rG := g.Point().Mul(r, commitData.H)
+	expected := g.Point().Add(cXG, rG)
 	committedW := g.Point().Mul(w, commitData.H)
-	return finV.Equal(committedW)
+	return committedW.Equal(expected)
 }
 
-func verifyPublicPhase(g kyber.Group, w kyber.Scalar, c kyber.Scalar, r kyber.Scalar, x int, y int, publicKey kyber.Point, encryptedPoint kyber.Point) bool {
-	panic("impl me!")
-}
+// DLEQ for encryption data
+func verifyPublicPhase(g kyber.Group, w kyber.Scalar, c kyber.Scalar, r kyber.Scalar, publicKey kyber.Point, encryptedPoint kyber.Point) bool {
 
-func Recover([]*RecoveryData) (*node.Node, error) {
-	panic("impl me!")
+	// finV = committed Eval
+	cXG := g.Point().Mul(c, encryptedPoint)
+	rG := g.Point().Mul(r, publicKey)
+	expected := g.Point().Add(cXG, rG)
+	encryptedW := g.Point().Mul(w, publicKey)
+	return encryptedW.Equal(expected)
 }

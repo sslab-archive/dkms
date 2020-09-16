@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	"dkms/node"
 	"dkms/share"
 
 	"go.dedis.ch/kyber/v3"
@@ -28,7 +27,7 @@ func NewBiPoint(from share.BiPoint) (*BiPoint, error) {
 	}, nil
 }
 
-func (bp *BiPoint) ToDomain(suite node.Suite) (*share.BiPoint, error) {
+func (bp *BiPoint) ToDomain(suite share.Suite) (*share.BiPoint, error) {
 	s, err := share.HexToScalar(bp.ScalarHex, suite)
 	if err != nil {
 		return nil, err
@@ -40,7 +39,7 @@ func (bp *BiPoint) ToDomain(suite node.Suite) (*share.BiPoint, error) {
 	}, err
 }
 
-func EncryptedMessageToPoints(encMessage share.EncryptedMessage, prvKey kyber.Scalar, suite node.Suite) ([]share.BiPoint, error) {
+func EncryptedMessageToPoints(encMessage share.EncryptedMessage, prvKey kyber.Scalar, suite share.Suite) ([]share.BiPoint, error) {
 	msg, err := share.Decrypt(suite, prvKey, encMessage)
 	typePoints := make([]BiPoint, 0)
 	err = json.Unmarshal(msg, &typePoints)
@@ -72,7 +71,7 @@ func EncryptedMessageToPoints(encMessage share.EncryptedMessage, prvKey kyber.Sc
 	return points, nil
 }
 
-func PointsToEncryptedMessage(points []share.BiPoint, pubKey kyber.Point, suite node.Suite) (*share.EncryptedMessage, error) {
+func PointsToEncryptedMessage(points []share.BiPoint, pubKey kyber.Point, suite share.Suite) (*share.EncryptedMessage, error) {
 	typePoints := make([]BiPoint, 0)
 	for _, onePoint := range points {
 		b, err := onePoint.V.MarshalBinary()

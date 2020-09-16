@@ -25,6 +25,9 @@ type Address struct {
 	Port string `json:"port"`
 }
 
+func (a *Address) Address() string {
+	return a.Ip+":"+a.Port
+}
 type Status = string
 
 const (
@@ -34,11 +37,12 @@ const (
 
 func NewNode(id string, index int, addr Address) *Node {
 	return &Node{
-		id:           id,
-		PubKey:       nil,
-		Address:      addr,
+		id:              id,
+		PubKey:          nil,
+		Address:         addr,
+		Index:           index,
 		EncryptedPoints: make([]kyber.Point, 0),
-		Status:       AVAILABLE,
+		Status:          AVAILABLE,
 	}
 }
 

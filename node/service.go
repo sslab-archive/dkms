@@ -22,21 +22,14 @@ import (
 	"go.dedis.ch/kyber/v3"
 )
 
-type Suite interface {
-	kyber.Group
-	kyber.HashFactory
-	kyber.Encoding
-	kyber.XOFFactory
-	kyber.Random
-}
-
 type Service struct {
-	Suite        Suite
+	Suite        share.Suite
 	myPubKey     kyber.Point
 	myPrivateKey kyber.Scalar
+	myAddress    Address
 }
 
-func NewService(s Suite, privateBytes []byte) (*Service, error) {
+func NewService(s share.Suite, privateBytes []byte, addr Address) (*Service, error) {
 	prv := s.Scalar()
 	err := prv.UnmarshalBinary(privateBytes)
 	if err != nil {
@@ -47,6 +40,7 @@ func NewService(s Suite, privateBytes []byte) (*Service, error) {
 		Suite:        s,
 		myPubKey:     s.Point().Mul(prv, nil),
 		myPrivateKey: prv,
+		myAddress:    addr,
 	}, nil
 }
 
@@ -57,8 +51,9 @@ func (s *Service) GetMyPublicKey() kyber.Point {
 func (s *Service) GetMyPrivateKey() kyber.Scalar {
 	return s.myPrivateKey
 }
-
-
+func (s *Service) GetMyAddress() Address {
+	return s.myAddress
+}
 func MakeRecoveryData(yPoly share.YPoly, commitData share.CommitData, failIdx int64) *share.RecoveryData {
 	return &share.RecoveryData{
 		FromNodeIdx:    yPoly.X,

@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"dkms/node"
+
 
 	"go.dedis.ch/kyber/v3"
 )
@@ -19,7 +19,7 @@ type EncryptedMessage struct {
 }
 
 
-func Encrypt(suite node.Suite, pubKey kyber.Point, msg []byte) (*EncryptedMessage, error) {
+func Encrypt(suite Suite, pubKey kyber.Point, msg []byte) (*EncryptedMessage, error) {
 
 	sharePrivateKey := suite.Scalar().Pick(suite.RandomStream())
 	sharePublicKey := suite.Point().Mul(sharePrivateKey, nil)
@@ -62,7 +62,7 @@ func Encrypt(suite node.Suite, pubKey kyber.Point, msg []byte) (*EncryptedMessag
 	}, nil
 }
 
-func Decrypt(suite node.Suite, privateKey kyber.Scalar, encryptedMsg EncryptedMessage) ([]byte, error) {
+func Decrypt(suite Suite, privateKey kyber.Scalar, encryptedMsg EncryptedMessage) ([]byte, error) {
 	sharePublicKey, err := HexToPoint(encryptedMsg.SharedPublicPointHex, suite)
 	if err != nil {
 		return nil, err

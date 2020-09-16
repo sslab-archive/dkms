@@ -14,7 +14,7 @@ type Node struct {
 	EncryptedPointsHex []string
 }
 
-func (n *Node) ToDomain(suite node.Suite) (*node.Node, error) {
+func (n *Node) ToDomain(suite share.Suite) (*node.Node, error) {
 
 	pubKey, err := share.HexToPoint(n.PublicKeyHex, suite)
 	if err != nil {
@@ -33,4 +33,25 @@ func (n *Node) ToDomain(suite node.Suite) (*node.Node, error) {
 	domainNode.PubKey = pubKey
 	domainNode.EncryptedPoints = encryptedPoints
 	return domainNode, nil
+}
+
+func NewNode(from node.Node) (*Node, error) {
+	h, err := share.PointToHex(from.PubKey)
+	if err != nil {
+		return nil, err
+	}
+	encPointsHex := make([]string, 0)
+	for _, onePoint := range from.EncryptedPoints {
+		h, err := share.PointToHex(onePoint)
+		if err != nil {
+			return nil, err
+		}
+		encPointsHex = append(encPointsHex, h)
+	}
+	return &Node{
+		Address:            from.Address,
+		PublicKeyHex:       h,
+		Index:              from.Index,
+		EncryptedPointsHex: encPointsHex,
+	}, nil
 }

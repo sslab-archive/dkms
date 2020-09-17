@@ -16,3 +16,7 @@
 
 package checker
 
+type Service interface {
+
+}
+

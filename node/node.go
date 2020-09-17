@@ -35,9 +35,9 @@ const (
 	CORRUPTED = Status("CORRUPTED")
 )
 
-func NewNode(id string, index int, addr Address) *Node {
+func NewNode(index int, addr Address) *Node {
 	return &Node{
-		id:              id,
+		id:              addr.Address(),
 		PubKey:          nil,
 		Address:         addr,
 		Index:           index,

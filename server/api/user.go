@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"dkms/checker"
 	"dkms/node"
 	"dkms/server/interfaces"
 	"dkms/server/types"
@@ -32,14 +33,16 @@ import (
 )
 
 type User struct {
-	repository  user.Repository
-	nodeService *node.Service
+	repository           user.Repository
+	nodeService          *node.Service
+	checkerLogRepository checker.LogRepository
 }
 
-func NewUser(repository user.Repository, nodeService *node.Service) *User {
+func NewUser(repository user.Repository, checkerLogRepository checker.LogRepository, nodeService *node.Service) *User {
 	return &User{
-		repository:  repository,
-		nodeService: nodeService,
+		repository:           repository,
+		checkerLogRepository: checkerLogRepository,
+		nodeService:          nodeService,
 	}
 }
 
@@ -113,4 +116,45 @@ func (u *User) RegisterUser(c *gin.Context) {
 		Commit: requestBody.CommitData,
 		Nodes:  requestBody.Nodes,
 	})
+}
+
+func (u *User) UserInformation(c *gin.Context) {
+	var pathParams struct {
+		Id string `uri:"id" binding:"required"`
+	}
+
+	if err := c.ShouldBindUri(&pathParams); err != nil {
+		BadRequestError(c, errors.New("path variable :id does not exists"))
+		return
+	}
+	us, err := u.repository.Get(pathParams.Id)
+	if err != nil {
+		InternalServerError(c, err)
+		return
+	}
+	nodes := make([]types.Node, 0)
+	for _, oneNode := range us.Nodes {
+		typeNode, err := types.NewNode(*oneNode)
+		if err != nil {
+			InternalServerError(c, err)
+			return
+		}
+		nodes = append(nodes, *typeNode)
+	}
+	commit, err := types.NewPolyCommitData(us.PolyCommit)
+	if err != nil {
+		InternalServerError(c, err)
+		return
+	}
+	logs := u.checkerLogRepository.GetLogsByUserId(us.Id)[:50]
+	c.JSON(http.StatusOK, interfaces.GetUserInformationResponse{
+		Id:           us.Id,
+		CommitData:   *commit,
+		IsMonitoring: us.Monitoring,
+		T:            us.MyXPoly.T(),
+		U:            us.MyYPoly.U(),
+		Nodes:        nodes,
+		Logs:         logs,
+	})
+	return
 }

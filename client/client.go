@@ -58,7 +58,7 @@ func (c *Client) RegisterKey(serverAddresses []types.Address, t int, u int) erro
 			return err
 		}
 
-		n := node.NewNode(c.userId+"_"+string(idx+1), idx+1, oneServerAddr)
+		n := node.NewNode(idx+1, oneServerAddr)
 
 		p, err := share.HexToPoint(r.PubKeyHex, c.suite)
 		if err != nil {
@@ -82,13 +82,13 @@ func (c *Client) RegisterKey(serverAddresses []types.Address, t int, u int) erro
 		encPoints := make([]kyber.Point, 0)
 		yPoly := poly.GetYPoly(int64(oneNode.Index))
 		xPoly := poly.GetXPoly(int64(oneNode.Index))
-		for i := 1; i <=yPoly.U(); i++ {
+		for i := 1; i <= yPoly.U(); i++ {
 			yp := yPoly.Eval(int64(i))
 			rawPoints = append(rawPoints, yp)
 			encPoints = append(encPoints, c.suite.Point().Mul(yp.V, oneNode.PubKey))
 		}
 
-		for i :=  1; i <= xPoly.T(); i++ {
+		for i := 1; i <= xPoly.T(); i++ {
 			xp := xPoly.Eval(int64(i))
 			rawPoints = append(rawPoints, xp)
 			encPoints = append(encPoints, c.suite.Point().Mul(xp.V, oneNode.PubKey))

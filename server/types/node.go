@@ -8,6 +8,7 @@ import (
 )
 
 type Node struct {
+	Id                 string
 	Address            Address
 	PublicKeyHex       string
 	Index              int
@@ -29,7 +30,7 @@ func (n *Node) ToDomain(suite share.Suite) (*node.Node, error) {
 		}
 		encryptedPoints = append(encryptedPoints, p)
 	}
-	domainNode := node.NewNode(n.Address.Ip+n.Address.Port, n.Index, n.Address)
+	domainNode := node.NewNode(n.Index, n.Address)
 	domainNode.PubKey = pubKey
 	domainNode.EncryptedPoints = encryptedPoints
 	return domainNode, nil
@@ -49,6 +50,7 @@ func NewNode(from node.Node) (*Node, error) {
 		encPointsHex = append(encPointsHex, h)
 	}
 	return &Node{
+		Id:                 from.ID(),
 		Address:            from.Address,
 		PublicKeyHex:       h,
 		Index:              from.Index,

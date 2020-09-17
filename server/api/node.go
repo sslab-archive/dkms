@@ -11,12 +11,12 @@ import (
 )
 
 type Node struct {
-	service *node.Service
+	service       *node.Service
 }
 
 func NewNode(nodeService *node.Service) *Node {
 	return &Node{
-		service: nodeService,
+		service:       nodeService,
 	}
 }
 

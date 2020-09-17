@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"time"
 
+	mem2 "dkms/checker/mem"
 	"dkms/node"
 	"dkms/server/api"
 	"dkms/share"
@@ -41,6 +42,7 @@ import (
 func New(ip string, port string, prvKeyHex string) *gin.Engine {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	userRepository := mem.NewUserRepository()
+	checkerLogRepository := mem2.NewCheckerLogRepository()
 	prvKeyBytes, err := hex.DecodeString(prvKeyHex)
 	if err != nil {
 		panic(err.Error())
@@ -53,13 +55,14 @@ func New(ip string, port string, prvKeyHex string) *gin.Engine {
 		panic("error while initialize node service")
 	}
 
-	userApi := api.NewUser(userRepository, nodeService)
-	checkerApi := api.NewChecker(userRepository, nodeService)
+	userApi := api.NewUser(userRepository,checkerLogRepository, nodeService)
+	checkerApi := api.NewChecker(userRepository, checkerLogRepository, nodeService)
 	nodeApi := api.NewNode(nodeService)
 
 	router := gin.New()
 	router.Use(gin.Recovery())
 
+	router.POST("/user/:id", userApi.UserInformation)
 	router.POST("/user", userApi.RegisterUser)
 
 	router.POST("/checker/user", checkerApi.AddCheckUser)

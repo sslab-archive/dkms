@@ -54,6 +54,9 @@ func (s *Service) GetMyPrivateKey() kyber.Scalar {
 func (s *Service) GetMyAddress() Address {
 	return s.myAddress
 }
+func (s *Service) GetMyId() string {
+	return s.myAddress.Address()
+}
 func MakeRecoveryData(yPoly share.YPoly, commitData share.CommitData, failIdx int64) *share.RecoveryData {
 	return &share.RecoveryData{
 		FromNodeIdx:    yPoly.X,

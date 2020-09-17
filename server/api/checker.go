@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"dkms/checker"
 	"dkms/node"
 	"dkms/server/interfaces"
 	"dkms/share"
@@ -20,16 +21,18 @@ import (
 )
 
 type Checker struct {
-	userRepository   user.Repository
-	nodeService      *node.Service
-	daemonCtx        *context.Context
-	daemonCancelFunc *context.CancelFunc
+	userRepository       user.Repository
+	checkerLogRepository checker.LogRepository
+	nodeService          *node.Service
+	daemonCtx            *context.Context
+	daemonCancelFunc     *context.CancelFunc
 }
 
-func NewChecker(userRepository user.Repository, nodeService *node.Service) *Checker {
+func NewChecker(userRepository user.Repository, checkerLogRepository checker.LogRepository, nodeService *node.Service) *Checker {
 	return &Checker{
-		userRepository: userRepository,
-		nodeService:    nodeService,
+		userRepository:       userRepository,
+		nodeService:          nodeService,
+		checkerLogRepository: checkerLogRepository,
 	}
 }
 
@@ -206,19 +209,23 @@ func (ch *Checker) runDaemon() error {
 					}
 					logrus.Info(fmt.Sprintf("start checking for node : " + oneNode.Address.Address()))
 
+					logBuilder := checker.NewLogBuilder()
+					logBuilder.SetFromNodeId(ch.nodeService.GetMyId()).SetTargetNodeId(oneNode.ID()).SetUserId(u.Id)
 					// phase 1. get w value
 					url := "http://" + oneNode.Address.Address() + "/checker/user/startVerify"
 					b, err := json.Marshal(interfaces.StartVerifyRequest{UserId: u.Id})
 					if err != nil {
 						logrus.Error(err.Error())
-						ch.markNodeAsCorrupted(&u, oneNode)
+						logBuilder.SetError(err)
+						ch.markNodeAsCorrupted(&u, oneNode, logBuilder.Build())
 						continue
 					}
 
 					resp1, err := http.Post(url, "application/json", bytes.NewReader(b))
 					if err != nil {
 						logrus.Error(err.Error())
-						ch.markNodeAsCorrupted(&u, oneNode)
+						logBuilder.SetError(err)
+						ch.markNodeAsCorrupted(&u, oneNode, logBuilder.Build())
 						continue
 					}
 
@@ -227,13 +234,17 @@ func (ch *Checker) runDaemon() error {
 					err = json.Unmarshal(b1, &r1)
 					if err != nil {
 						logrus.Error(err.Error())
-						ch.markNodeAsCorrupted(&u, oneNode)
+						logBuilder.SetError(err)
+						ch.markNodeAsCorrupted(&u, oneNode, logBuilder.Build())
 						continue
 					}
+					logBuilder.SetW(r1.WScalarHex)
+
 					w, err := share.HexToScalar(r1.WScalarHex, ch.nodeService.Suite)
 					if err != nil {
 						logrus.Error(err.Error())
-						ch.markNodeAsCorrupted(&u, oneNode)
+						logBuilder.SetError(err)
+						ch.markNodeAsCorrupted(&u, oneNode, logBuilder.Build())
 						continue
 					}
 					logrus.Info(fmt.Sprintf("received W value : %s", r1.WScalarHex))
@@ -243,9 +254,11 @@ func (ch *Checker) runDaemon() error {
 					c, err := share.ScalarToHex(randomCVal)
 					if err != nil {
 						logrus.Error(err.Error())
-						ch.markNodeAsCorrupted(&u, oneNode)
+						logBuilder.SetError(err)
+						ch.markNodeAsCorrupted(&u, oneNode, logBuilder.Build())
 						continue
 					}
+					logBuilder.SetC(c)
 
 					url = "http://" + oneNode.Address.Address() + "/checker/user/challenge"
 					b, err = json.Marshal(interfaces.VerifyChallengeRequest{
@@ -255,14 +268,16 @@ func (ch *Checker) runDaemon() error {
 					})
 					if err != nil {
 						logrus.Error(err.Error())
-						ch.markNodeAsCorrupted(&u, oneNode)
+						logBuilder.SetError(err)
+						ch.markNodeAsCorrupted(&u, oneNode, logBuilder.Build())
 						continue
 					}
 
 					resp2, err := http.Post(url, "application/json", bytes.NewReader(b))
 					if err != nil {
 						logrus.Error(err.Error())
-						ch.markNodeAsCorrupted(&u, oneNode)
+						logBuilder.SetError(err)
+						ch.markNodeAsCorrupted(&u, oneNode, logBuilder.Build())
 						continue
 					}
 
@@ -272,7 +287,8 @@ func (ch *Checker) runDaemon() error {
 					err = json.Unmarshal(b2, &r2)
 					if err != nil {
 						logrus.Error(err.Error())
-						ch.markNodeAsCorrupted(&u, oneNode)
+						logBuilder.SetError(err)
+						ch.markNodeAsCorrupted(&u, oneNode, logBuilder.Build())
 						continue
 					}
 					logrus.Info(fmt.Sprintf("generated C value : %s", c))
@@ -281,7 +297,8 @@ func (ch *Checker) runDaemon() error {
 					if len(r2.RScalarHex) != u.MyYPoly.U() {
 						logrus.Warn(fmt.Sprintf("received r value length is not match my U value! received : %d, my U: %d", len(r2.RScalarHex), u.MyYPoly.U()))
 						logrus.Info(fmt.Sprintf("set node : %s as courrpted", oneNode.Address.Address()))
-						ch.markNodeAsCorrupted(&u, oneNode)
+						logBuilder.SetError(errors.New("received r value length is not match my U value"))
+						ch.markNodeAsCorrupted(&u, oneNode, logBuilder.Build())
 						continue
 					}
 					logrus.Info(fmt.Sprintf("Start verify received R Values. point length : %d", len(r2.RScalarHex)))
@@ -289,18 +306,22 @@ func (ch *Checker) runDaemon() error {
 						r, err := share.HexToScalar(rHex, ch.nodeService.Suite)
 						if err != nil {
 							logrus.Error(err.Error())
-							ch.markNodeAsCorrupted(&u, oneNode)
+							logBuilder.SetError(err)
+							ch.markNodeAsCorrupted(&u, oneNode, logBuilder.Build())
 							break
 						}
-
+						logBuilder.SetR(rHex)
 						result := share.VerifyRScalar(ch.nodeService.Suite, w, randomCVal, r, oneNode.Index, idx+1, oneNode.PubKey, u.PolyCommit, oneNode.EncryptedPoints[idx])
 						if result {
 							logrus.Info(fmt.Sprintf("Index %d - R : %s -------> success", idx+1, rHex))
 						} else {
 							logrus.Info(fmt.Sprintf("Index %d - R : %s -------> fail", idx+1, rHex))
-							ch.markNodeAsCorrupted(&u, oneNode)
+							logBuilder.SetError(errors.New("r value verification fail"))
+							ch.markNodeAsCorrupted(&u, oneNode, logBuilder.Build())
 							break
 						}
+						log := logBuilder.Build()
+						ch.checkerLogRepository.Add(*log)
 					}
 					logrus.Info(fmt.Sprintf("finish checking node : %s", oneNode.Address.Address()))
 					logrus.Info("--------------------------------------------------------------")
@@ -324,6 +345,12 @@ func (ch *Checker) runDaemon() error {
 	}
 }
 
+func (ch *Checker) GetCheckerLogs(c *gin.Context) {
+	logs := ch.checkerLogRepository.GetLogsByFromNodeId(ch.nodeService.GetMyAddress().Address())[:50]
+	c.JSON(http.StatusOK, logs)
+	return
+}
+
 func (ch *Checker) stopDaemon() error {
 	if ch.daemonCancelFunc == nil {
 		return errors.New("there is no daemon to stop")
@@ -334,9 +361,10 @@ func (ch *Checker) stopDaemon() error {
 	return nil
 }
 
-func (ch *Checker) markNodeAsCorrupted(u *user.User, oneNode *node.Node) {
+func (ch *Checker) markNodeAsCorrupted(u *user.User, oneNode *node.Node, log *checker.Log) {
 	oneNode.Status = node.CORRUPTED
 	err := ch.userRepository.Save(u)
+	ch.checkerLogRepository.Add(*log)
 	if err != nil {
 		logrus.Error("error while user set as corrupted in markNodeAsCorrupted")
 	}

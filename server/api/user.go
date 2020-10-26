@@ -158,3 +158,32 @@ func (u *User) UserInformation(c *gin.Context) {
 	})
 	return
 }
+
+func (u *User) AttackFunction(c *gin.Context) {
+
+	var pathParams struct {
+		Id string `uri:"id" binding:"required"`
+	}
+	if err := c.ShouldBindUri(&pathParams); err != nil {
+		BadRequestError(c, errors.New("path variable :id does not exists"))
+		return
+	}
+	us, err := u.repository.Get(pathParams.Id)
+	if err != nil {
+		InternalServerError(c, err)
+		return
+	}
+
+	us.MyYPoly.MakeMalicious()
+	err = u.repository.Save(&us)
+
+	if err != nil {
+		InternalServerError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusNoContent, nil)
+
+	return
+}
+

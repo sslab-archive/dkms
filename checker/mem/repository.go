@@ -23,7 +23,7 @@ func (c *CheckerLogRepository) GetLogsByUserId(userId string) []checker.Log {
 			res = append(res, d)
 		}
 	}
-	return res
+	return reverse(res)
 }
 
 func (c *CheckerLogRepository) GetLogsByFromNodeId(nodeId string) []checker.Log {
@@ -33,7 +33,7 @@ func (c *CheckerLogRepository) GetLogsByFromNodeId(nodeId string) []checker.Log 
 			res = append(res, d)
 		}
 	}
-	return res
+	return reverse(res)
 }
 
 func (c *CheckerLogRepository) GetLogsByTargetNodeIds(nodeId string) []checker.Log {
@@ -43,9 +43,18 @@ func (c *CheckerLogRepository) GetLogsByTargetNodeIds(nodeId string) []checker.L
 			res = append(res, d)
 		}
 	}
-	return res
+	return reverse(res)
 }
 
 func (c *CheckerLogRepository) GetAllLogs() []checker.Log {
 	return c.data
+}
+
+
+func reverse(logs []checker.Log) []checker.Log {
+	newLogs := make([]checker.Log, 0, len(logs))
+	for i := len(logs)-1; i >= 0; i-- {
+		newLogs = append(newLogs, logs[i])
+	}
+	return newLogs
 }

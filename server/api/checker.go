@@ -157,7 +157,7 @@ func (ch *Checker) StartChecking(c *gin.Context) {
 		_ = ch.runDaemon()
 	}()
 
-	c.JSON(http.StatusOK, nil)
+	c.JSON(http.StatusNoContent, nil)
 	return
 }
 
@@ -167,7 +167,7 @@ func (ch *Checker) StopChecking(c *gin.Context) {
 	if err != nil {
 		InternalServerError(c, err)
 	}
-	c.JSON(http.StatusOK, nil)
+	c.JSON(http.StatusNoContent, nil)
 	return
 }
 
@@ -345,8 +345,25 @@ func (ch *Checker) runDaemon() error {
 	}
 }
 
-func (ch *Checker) GetCheckerLogs(c *gin.Context) {
-	logs := ch.checkerLogRepository.GetLogsByFromNodeId(ch.nodeService.GetMyAddress().Address())[:50]
+func (ch *Checker) GetMyLogs(c *gin.Context) {
+	addr := ch.nodeService.GetMyAddress()
+	logs := ch.checkerLogRepository.GetLogsByFromNodeId(addr.Address())[:50]
+	c.JSON(http.StatusOK, logs)
+	return
+}
+
+func (ch *Checker) GetTargetLogs(c *gin.Context) {
+
+	var pathParams struct {
+		Id string `uri:"id" binding:"required"`
+	}
+
+	if err := c.ShouldBindUri(&pathParams); err != nil {
+		BadRequestError(c, errors.New("path variable :id does not exists"))
+		return
+	}
+
+	logs := ch.checkerLogRepository.GetLogsByTargetNodeIds(pathParams.Id)
 	c.JSON(http.StatusOK, logs)
 	return
 }

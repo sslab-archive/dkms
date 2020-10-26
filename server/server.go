@@ -55,22 +55,22 @@ func New(ip string, port string, prvKeyHex string) *gin.Engine {
 		panic("error while initialize node service")
 	}
 
-	userApi := api.NewUser(userRepository,checkerLogRepository, nodeService)
+	userApi := api.NewUser(userRepository, checkerLogRepository, nodeService)
 	checkerApi := api.NewChecker(userRepository, checkerLogRepository, nodeService)
 	nodeApi := api.NewNode(nodeService)
 
 	router := gin.New()
 	router.Use(gin.Recovery())
 
-	router.POST("/user/:id", userApi.UserInformation)
+	router.GET("/user/:id", userApi.UserInformation)
+	router.POST("/user/:id/attack", userApi.AttackFunction)
 	router.POST("/user", userApi.RegisterUser)
 
+	router.GET("/checker/myLogs", checkerApi.GetMyLogs)
+	router.GET("/checker/targetLogs/:id", checkerApi.GetTargetLogs)
 	router.POST("/checker/user", checkerApi.AddCheckUser)
-
 	router.POST("/checker/user/delete", checkerApi.RemoveCheckUser)
-
 	router.POST("/checker/user/startVerify", checkerApi.StartVerify)
-
 	router.POST("/checker/user/challenge", checkerApi.VerifyChallenge)
 	router.POST("/checker/start", checkerApi.StartChecking)
 	router.POST("/checker/stop", checkerApi.StopChecking)

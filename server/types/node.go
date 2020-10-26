@@ -13,6 +13,7 @@ type Node struct {
 	PublicKeyHex       string
 	Index              int
 	EncryptedPointsHex []string
+	Status             Status
 }
 
 func (n *Node) ToDomain(suite share.Suite) (*node.Node, error) {
@@ -55,5 +56,6 @@ func NewNode(from node.Node) (*Node, error) {
 		PublicKeyHex:       h,
 		Index:              from.Index,
 		EncryptedPointsHex: encPointsHex,
+		Status:             from.Status,
 	}, nil
 }

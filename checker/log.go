@@ -9,7 +9,7 @@ const (
 	RESULT_FAIL_W             = "fail w"
 	RESULT_FAIL_C             = "fail c"
 	RESULT_FAIL_R             = "fail r"
-	RESULT_FAIL_VERIFIACATION = "fail r"
+	RESULT_FAIL_VERIFIACATION = "fail verification"
 )
 
 type Log struct {
@@ -46,7 +46,7 @@ func (lb *LogBuilder) SetFromNodeId(id string) *LogBuilder {
 }
 
 func (lb *LogBuilder) SetTargetNodeId(id string) *LogBuilder {
-	lb.resultLog.FromNodeId = id
+	lb.resultLog.TargetNodeId = id
 	return lb
 }
 
@@ -72,11 +72,11 @@ func (lb *LogBuilder) Build() *Log {
 	} else {
 		lb.resultLog.Result = RESULT_FAIL_VERIFIACATION
 	}
-	if lb.resultLog.WHex != "" {
+	if lb.resultLog.WHex == "" {
 		lb.resultLog.Result = RESULT_FAIL_W
-	} else if lb.resultLog.CHex != "" {
+	} else if lb.resultLog.CHex == "" {
 		lb.resultLog.Result = RESULT_FAIL_C
-	} else if lb.resultLog.RHex != "" {
+	} else if lb.resultLog.RHex == "" {
 		lb.resultLog.Result = RESULT_FAIL_R
 	}
 	return lb.resultLog

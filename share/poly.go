@@ -180,6 +180,12 @@ func (yp *YPoly) Eval(y int64) BiPoint {
 	return BiPoint{yp.X, y, totalValue}
 }
 
+func (yp *YPoly) MakeMalicious() {
+	for i := range yp.yCoeffs{
+		yp.yCoeffs[i] = yp.g.Scalar().Mul(yp.yCoeffs[i],yp.g.Scalar().SetInt64(2))
+	}
+}
+
 func (xp *XPoly) T() int {
 	return len(xp.xCoeffs) + 1
 }

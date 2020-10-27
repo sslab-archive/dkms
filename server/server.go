@@ -18,6 +18,9 @@ package server
 
 import (
 	"encoding/hex"
+	"fmt"
+	"io"
+	"os"
 	"time"
 
 	mem2 "dkms/checker/mem"
@@ -78,6 +81,17 @@ func New(ip string, port string, prvKeyHex string) *gin.Engine {
 	router.GET("/info", nodeApi.ServerInfo)
 	//// get userInfo
 	//router.GET("/user/:userId", api.KeyRetrieveRequest)
+	f, err := os.OpenFile("testlogrus.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+	if err != nil {
+		fmt.Printf("error opening file: %v", err)
+	}
+
+	// don't forget to close it
+	defer f.Close()
+	logrus.SetFormatter(&logrus.JSONFormatter{
+		TimestampFormat: time.StampMicro,
+	})
+	logrus.SetOutput(io.MultiWriter(os.Stdout, f))
 	logrus.Info("server is ready for initialize.")
 	prvHex, _ := share.ScalarToHex(nodeService.GetMyPrivateKey())
 	pubHex, _ := share.PointToHex(nodeService.GetMyPublicKey())

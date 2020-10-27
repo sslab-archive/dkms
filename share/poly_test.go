@@ -2,10 +2,8 @@ package share
 
 import (
 	"fmt"
-	"math/big"
 	"testing"
 
-	"github.com/btcsuite/btcd/btcec"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
 )
@@ -57,19 +55,19 @@ func TestLagrangeForYPoly(t *testing.T) {
 }
 
 func TestTwo(t *testing.T) {
-	curve := btcec.S256()
-	secret := big.NewInt(123456789)
-	prvKey := big.NewInt(299872984179287342)
-
-	pubX, pubY := curve.ScalarBaseMult(prvKey.Bytes())
-	baseX, baseY := curve.ScalarBaseMult(secret.Bytes())
-
-	encryptedX, encryptedY := curve.ScalarMult(pubX, pubY, secret.Bytes())
-
-	inv := big.NewInt(0).ModInverse(prvKey, curve.N)
-	recoveredX, recoveredY := curve.ScalarMult(encryptedX, encryptedY, inv.Bytes())
-	fmt.Println(recoveredX, recoveredY)
-	fmt.Println(baseX, baseY)
+	//curve := btcec.S256()
+	//secret := big.NewInt(123456789)
+	//prvKey := big.NewInt(299872984179287342)
+	//
+	//pubX, pubY := curve.ScalarBaseMult(prvKey.Bytes())
+	//baseX, baseY := curve.ScalarBaseMult(secret.Bytes())
+	//
+	//encryptedX, encryptedY := curve.ScalarMult(pubX, pubY, secret.Bytes())
+	//
+	//inv := big.NewInt(0).ModInverse(prvKey, curve.N)
+	//recoveredX, recoveredY := curve.ScalarMult(encryptedX, encryptedY, inv.Bytes())
+	//fmt.Println(recoveredX, recoveredY)
+	//fmt.Println(baseX, baseY)
 
 }
 

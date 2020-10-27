@@ -18,7 +18,6 @@ package server
 
 import (
 	"encoding/hex"
-	"fmt"
 	"io"
 	"os"
 	"time"

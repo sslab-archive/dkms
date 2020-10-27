@@ -1,6 +1,7 @@
 package share
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -57,4 +58,18 @@ func TestPoly(t *testing.T) {
 	assert.True(t, xpv.Equal(ypv))
 
 	assert.True(t, xpv.Equal(poly.Eval(2, 1, ).V))
+}
+
+func TestGenPrivateKey(t *testing.T)  {
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+
+	for i:=0;i<500;i++{
+		pvkey := suite.Scalar().Pick(suite.RandomStream())
+		d,err := ScalarToHex(pvkey)
+		if err !=nil{
+			panic("err")
+
+		}
+		fmt.Println(d)
+	}
 }

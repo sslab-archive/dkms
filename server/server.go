@@ -42,7 +42,7 @@ import (
 // c5fed8a8aaad03d77db926ce81e3fe0f40e98542f4719a2d05b3edb1a2eff30f
 // ab592d6dff915cec8e155d7f5e762484ac2ae8beb4cab13644b4a13b596d2501 <- user private key
 
-func New(ip string, port string, prvKeyHex string) *gin.Engine {
+func New(ip string, port string, prvKeyHex string,logFileName string) *gin.Engine {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	userRepository := mem.NewUserRepository()
 	checkerLogRepository := mem2.NewCheckerLogRepository()
@@ -81,7 +81,7 @@ func New(ip string, port string, prvKeyHex string) *gin.Engine {
 	router.GET("/info", nodeApi.ServerInfo)
 	//// get userInfo
 	//router.GET("/user/:userId", api.KeyRetrieveRequest)
-	f, err := os.OpenFile("testlogrus.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+	f, err := os.OpenFile(logFileName+".log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		fmt.Printf("error opening file: %v", err)
 	}

@@ -14,6 +14,7 @@ var (
 	ip            string
 	port          string
 	privateKeyHex string
+	logName       string
 	serverCmd     = &cobra.Command{
 		Use:   "server",
 		Short: "command for server",
@@ -22,7 +23,7 @@ var (
 		Use:   "runserver",
 		Short: "command for server",
 		Run: func(cmd *cobra.Command, args []string) {
-			s := server.New(ip, port, privateKeyHex)
+			s := server.New(ip, port, privateKeyHex,logName)
 			if err := s.Run(ip + ":" + port); err != nil {
 				panic(fmt.Sprintf("failed to run server: %s", err.Error()))
 			}
@@ -64,8 +65,10 @@ func init() {
 
 	runServerCmd.PersistentFlags().StringVar(&ip, "ip", "127.0.0.1", "ip for boot server")
 	runServerCmd.PersistentFlags().StringVar(&port, "port", "8000", "port for boot server")
+	runServerCmd.PersistentFlags().StringVar(&logName, "log", "", "log file name for server")
 	runServerCmd.PersistentFlags().StringVar(&privateKeyHex, "key", "", "private key hex for server")
 	_ = runServerCmd.MarkPersistentFlagRequired("key")
+	_ = runServerCmd.MarkPersistentFlagRequired("log")
 
 	startCheckerCmd.PersistentFlags().StringVar(&ip, "ip", "127.0.0.1", "ip for boot server")
 	startCheckerCmd.PersistentFlags().StringVar(&port, "port", "8000", "port for boot server")

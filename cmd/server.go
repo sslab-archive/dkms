@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"dkms/server"
 
@@ -23,7 +24,12 @@ var (
 		Use:   "runserver",
 		Short: "command for server",
 		Run: func(cmd *cobra.Command, args []string) {
-			s := server.New(ip, port, privateKeyHex,logName)
+			f, err := os.OpenFile(logName+".log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+			if err != nil {
+				fmt.Printf("error opening file: %v", err)
+			}
+			defer f.Close()
+			s := server.New(ip, port, privateKeyHex,f)
 			if err := s.Run(ip + ":" + port); err != nil {
 				panic(fmt.Sprintf("failed to run server: %s", err.Error()))
 			}

@@ -1,7 +1,8 @@
 #!/bin/bash
 
 if [ $# -ne 5 ]; then
-	echo "plz input 3 param for this shell"
+	echo "plz input 5 param for this shell"
+	echo "bash linuxClientTest.sh [clientKeyFile] [serverNum] [clientIndex] [t] [u]"
 	exit 1;
 fi
 

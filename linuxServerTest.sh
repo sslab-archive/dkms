@@ -13,7 +13,7 @@ startServerPort=5000
 serverPrivateKeyFile=${1}
 startServerKeyIndex=${2}
 endServerKeyIndex=${3}
-myIp=$(hostname -I)
+myIp=$(hostname -I)[0]
 
 numOfServers=`expr $endServerKeyIndex - $startServerKeyIndex`
 
@@ -27,6 +27,7 @@ do
 	--log="server_"$curPort &
 	curIndex=`expr $curIndex + 1`
 	num=`expr $num + 1`
+	sleep 1
 	echo ""
 	echo ""
 	echo ""

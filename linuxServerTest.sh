@@ -24,7 +24,7 @@ do
 	serverPrvKey=`awk 'NR==v1' v1=$curIndex $serverPrivateKeyFile`
 	curPort=`expr $startServerPort + $num`
 	./dkms server runserver --ip=$myIp --port=$curPort --key=$serverPrvKey \
-	--log="server_"$curPort &
+	--log="server_"$curPort > /dev/null &
 	curIndex=`expr $curIndex + 1`
 	num=`expr $num + 1`
 	sleep 1

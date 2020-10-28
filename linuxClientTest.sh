@@ -22,7 +22,7 @@ for elem in "${serverInfoList[@]}"
 do
 	data=(${elem[0]})
 	ip=${data[0]}
-	num=${data[1]}
+	num=`expr ${data[1]} - 1`
 	for i in $(seq 0 $num);
 	do
 		port=`expr $startServerPort + $i`
@@ -54,7 +54,7 @@ for elem in "${serverInfoList[@]}"
 do
 	data=(${elem[0]})
 	ip=${data[0]}
-	num=${data[1]}
+	num=`expr ${data[1]} - 1`
 	for i in $(seq 0 $num);
 	do
 		port=`expr $startServerPort + $i`

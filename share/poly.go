@@ -21,7 +21,6 @@ import (
 	"crypto/cipher"
 	"encoding/binary"
 	"errors"
-
 	"go.dedis.ch/kyber/v3"
 )
 
@@ -45,6 +44,7 @@ type CommitData struct {
 	SecretCommit kyber.Point
 	XCommits     []kyber.Point // Commitments to coefficients of the Secret sharing polynomial
 	YCommits     []kyber.Point // Commitments to coefficients of the Secret sharing polynomial
+	KCommits     []kyber.Point // Commitments to coefficients of the Secret sharing polynomial
 }
 
 type XPoly struct {
@@ -146,6 +146,7 @@ func (b *BiPoly) Eval(x int64, y int64) BiPoint {
 	return BiPoint{x, y, totalValue}
 }
 
+
 // T returns the Secret sharing threshold.
 func (b *BiPoly) T() int {
 	return len(b.XCoeffs) + 1
@@ -181,8 +182,8 @@ func (yp *YPoly) Eval(y int64) BiPoint {
 }
 
 func (yp *YPoly) MakeMalicious() {
-	for i := range yp.yCoeffs{
-		yp.yCoeffs[i] = yp.g.Scalar().Mul(yp.yCoeffs[i],yp.g.Scalar().SetInt64(2))
+	for i := range yp.yCoeffs {
+		yp.yCoeffs[i] = yp.g.Scalar().Mul(yp.yCoeffs[i], yp.g.Scalar().SetInt64(2))
 	}
 }
 
@@ -204,6 +205,41 @@ func (b *BiPoly) Shares(n int) []*YPoly {
 	return shares
 }
 
+func (b *BiPoly) OptCommit(commitBasePoint kyber.Point, n int) CommitData {
+	xCommits := make([]kyber.Point, b.T()-1)
+	yCommits := make([]kyber.Point, b.U()-1)
+	kCommits := make([]kyber.Point, n)
+	secretCommit := b.G.Point().Mul(b.Secret, commitBasePoint)
+
+	for i := 0; i < b.T()-1; i++ {
+		xCommits[i] = b.G.Point().Mul(b.XCoeffs[i], commitBasePoint)
+	}
+	for i := 0; i < b.U()-1; i++ {
+		yCommits[i] = b.G.Point().Mul(b.YCoeffs[i], commitBasePoint)
+	}
+
+	for i := 0; i < n; i++ {
+		kCommits[i] = b.GetKCommit(int64(i+1), commitBasePoint)
+	}
+	return CommitData{
+		G:            b.G,
+		H:            commitBasePoint,
+		SecretCommit: secretCommit,
+		XCommits:     xCommits,
+		YCommits:     yCommits,
+		KCommits:     kCommits,
+	}
+}
+
+func (b *BiPoly) GetKCommit(x int64, commitBase kyber.Point) kyber.Point {
+	xi := b.G.Scalar().SetInt64(x)
+	xValue := b.G.Scalar().Zero()
+	for j := b.T() - 2; j >= 0; j-- {
+		xValue.Add(xValue, b.XCoeffs[j])
+		xValue.Mul(xValue, xi)
+	}
+	return b.G.Point().Mul(xValue,commitBase)
+}
 func (b *BiPoly) Commit(commitBasePoint kyber.Point) CommitData {
 	xCommits := make([]kyber.Point, b.T()-1)
 	yCommits := make([]kyber.Point, b.U()-1)

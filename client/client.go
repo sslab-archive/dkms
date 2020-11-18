@@ -72,7 +72,7 @@ func (c *Client) RegisterKey(serverAddresses []types.Address, t int, u int) erro
 	// prepare data for register user
 	encMsgRequest := make([]*share.EncryptedMessage, 0)
 	typeNodes := make([]types.Node, 0)
-	commit := poly.Commit(c.suite.Point().Pick(c.suite.XOF([]byte("H"))))
+	commit := poly.OptCommit(c.suite.Point().Pick(c.suite.XOF([]byte("H"))), len(nodes))
 	typeCommit, err := types.NewPolyCommitData(commit)
 	if err != nil {
 		return nil

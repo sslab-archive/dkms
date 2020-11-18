@@ -134,18 +134,15 @@ func (ch *Checker) VerifyChallenge(c *gin.Context) {
 
 	cScalar, err := share.HexToScalar(requestBody.CScalarHex, ch.nodeService.Suite)
 
-	rValuesHex := make([]string, 0)
-	for i := 1; i <= u.MyYPoly.U(); i++ {
-		bp := u.MyYPoly.Eval(int64(i))
-		s := share.GenerateRScalar(ch.nodeService.Suite, wScalar, cScalar, bp)
-		h, err := share.ScalarToHex(s)
-		if err != nil {
-			InternalServerError(c, err)
-			return
-		}
-		rValuesHex = append(rValuesHex, h)
+	bp := u.MyYPoly.Eval(int64(1))
+	s := share.GenerateRScalar(ch.nodeService.Suite, wScalar, cScalar, bp)
+
+	rValuesHex, err := share.ScalarToHex(s)
+	if err != nil {
+		InternalServerError(c, err)
+		return
 	}
-	c.JSON(http.StatusOK, interfaces.VerifyChallengeResponse{
+	c.JSON(http.StatusOK, interfaces.VerifyOptChallengeResponse{
 		UserId:     u.Id,
 		RScalarHex: rValuesHex,
 	})
@@ -260,6 +257,7 @@ func (ch *Checker) runDaemon() error {
 					}
 					logBuilder.SetC(c)
 
+					logrus.Info(fmt.Sprintf("generated C value : %s", c))
 					url = "http://" + oneNode.Address.Address() + "/checker/user/challenge"
 					b, err = json.Marshal(interfaces.VerifyChallengeRequest{
 						UserId:     u.Id,
@@ -283,7 +281,7 @@ func (ch *Checker) runDaemon() error {
 
 					b2, err := ioutil.ReadAll(resp2.Body)
 
-					r2 := interfaces.VerifyChallengeResponse{}
+					r2 := interfaces.VerifyOptChallengeResponse{}
 					err = json.Unmarshal(b2, &r2)
 					if err != nil {
 						logrus.Error(err.Error())
@@ -291,37 +289,21 @@ func (ch *Checker) runDaemon() error {
 						ch.markNodeAsCorrupted(&u, oneNode, logBuilder.Build())
 						continue
 					}
-					logrus.Info(fmt.Sprintf("generated C value : %s", c))
-
-					// phase 3. check received r values
-					if len(r2.RScalarHex) != u.MyYPoly.U() {
-						logrus.Warn(fmt.Sprintf("received r value length is not match my U value! received : %d, my U: %d", len(r2.RScalarHex), u.MyYPoly.U()))
-						logrus.Info(fmt.Sprintf("set node : %s as courrpted", oneNode.Address.Address()))
-						logBuilder.SetError(errors.New("received r value length is not match my U value"))
+					r, err := share.HexToScalar(r2.RScalarHex, ch.nodeService.Suite)
+					if err != nil {
+						logrus.Error(err.Error())
+						logBuilder.SetError(err)
 						ch.markNodeAsCorrupted(&u, oneNode, logBuilder.Build())
-						continue
+						break
 					}
-					logrus.Info(fmt.Sprintf("Start verify received R Values. point length : %d", len(r2.RScalarHex)))
-					for idx, rHex := range r2.RScalarHex {
-						r, err := share.HexToScalar(rHex, ch.nodeService.Suite)
-						if err != nil {
-							logrus.Error(err.Error())
-							logBuilder.SetError(err)
-							ch.markNodeAsCorrupted(&u, oneNode, logBuilder.Build())
-							break
-						}
-						logBuilder.SetR(rHex)
-						result := share.VerifyRScalar(ch.nodeService.Suite, w, randomCVal, r, oneNode.Index, idx+1, oneNode.PubKey, u.PolyCommit, oneNode.EncryptedPoints[idx])
-						if result {
-							logrus.Info(fmt.Sprintf("Index %d - R : %s -------> success", idx+1, rHex))
-						} else {
-							logrus.Info(fmt.Sprintf("Index %d - R : %s -------> fail", idx+1, rHex))
-							logBuilder.SetError(errors.New("r value verification fail"))
-							ch.markNodeAsCorrupted(&u, oneNode, logBuilder.Build())
-							break
-						}
-						log := logBuilder.Build()
-						ch.checkerLogRepository.Add(*log)
+					logBuilder.SetR(r2.RScalarHex)
+					result := share.VerifyOptRScalar(ch.nodeService.Suite, w, randomCVal, r, oneNode.Index, 1, oneNode.PubKey, u.PolyCommit, oneNode.EncryptedPoints[0])
+					if result {
+						logrus.Info(fmt.Sprintf("R : %s -------> success", r2.RScalarHex))
+					} else {
+						logrus.Info(fmt.Sprintf("R : %s -------> fail",  r2.RScalarHex))
+						logBuilder.SetError(errors.New("r value verification fail"))
+						ch.markNodeAsCorrupted(&u, oneNode, logBuilder.Build())
 					}
 					logrus.Info(fmt.Sprintf("finish checking node : %s", oneNode.Address.Address()))
 					logrus.Info("--------------------------------------------------------------")

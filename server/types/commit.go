@@ -13,6 +13,7 @@ type PolyCommitData struct {
 	SecretCommitHex    string   `json:"secretCommitHex"`
 	XCommitsHex        []string `json:"xCommitsHex"`
 	YCommitsHex        []string `json:"yCommitsHex"`
+	KCommitsHex        []string `json:"kCommitsHex"`
 }
 
 func NewPolyCommitData(from share.CommitData) (*PolyCommitData, error) {
@@ -44,11 +45,21 @@ func NewPolyCommitData(from share.CommitData) (*PolyCommitData, error) {
 		yCommitHex = append(yCommitHex, hex.EncodeToString(b))
 	}
 
+	kCommitHex := make([]string, 0)
+	for _, oneKCommit := range from.KCommits {
+		b, err := oneKCommit.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		kCommitHex = append(kCommitHex, hex.EncodeToString(b))
+	}
+
 	return &PolyCommitData{
 		CommitBasePointHex: hex.EncodeToString(commitBasePointBin),
 		SecretCommitHex:    hex.EncodeToString(secretCommitBin),
 		XCommitsHex:        xCommitHex,
 		YCommitsHex:        yCommitHex,
+		KCommitsHex:        kCommitHex,
 	}, nil
 
 }
@@ -104,11 +115,27 @@ func (pcd *PolyCommitData) ToDomain(suite share.Suite) (*share.CommitData, error
 		yCommits = append(yCommits, p)
 	}
 
+	kCommits := make([]kyber.Point, 0)
+	for _, oneKCommitsHex := range pcd.KCommitsHex {
+		oneKCommitsBin, err := hex.DecodeString(oneKCommitsHex)
+		if err != nil {
+			return nil, err
+		}
+		p := suite.Point()
+		err = p.UnmarshalBinary(oneKCommitsBin)
+		if err != nil {
+			return nil, err
+		}
+
+		kCommits = append(kCommits, p)
+	}
+
 	return &share.CommitData{
 		G:            suite,
 		H:            commitBasePoint,
 		SecretCommit: secretCommit,
 		XCommits:     xCommits,
 		YCommits:     yCommits,
+		KCommits:     kCommits,
 	}, nil
 }

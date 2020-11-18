@@ -48,6 +48,25 @@ func TestVerifyCommitPhase(t *testing.T) {
 	assert.True(t, result)
 }
 
+func TestVerifyOptCommitPhase(t *testing.T) {
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	secret := suite.Scalar().SetInt64(123)
+	serverPrivateKey := suite.Scalar().Pick(suite.RandomStream())
+	serverPublicKey := suite.Point().Mul(serverPrivateKey, nil)
+
+	poly := GetSamplePoly(suite, secret)
+	H := suite.Point().Pick(suite.XOF([]byte("H")))
+	commit := poly.OptCommit(H,2)
+
+	serverSecretEncrypted := suite.Point().Mul(poly.Eval(2, 5).V, serverPublicKey)
+
+	w := suite.Scalar().SetInt64(int64(300))
+	c := suite.Scalar().SetInt64(int64(2))
+	r := GenerateRScalar(suite, w, c, poly.Eval(2, 5))
+
+	result := VerifyOptRScalar(suite, w, c, r, 2, 5, serverPublicKey, commit, serverSecretEncrypted)
+	assert.True(t, result)
+}
 func TestPoly(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	secret := suite.Scalar().SetInt64(123)

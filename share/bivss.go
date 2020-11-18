@@ -159,3 +159,32 @@ func verifyPublicPhase(g kyber.Group, w kyber.Scalar, c kyber.Scalar, r kyber.Sc
 	encryptedW := g.Point().Mul(w, publicKey)
 	return encryptedW.Equal(expected)
 }
+
+func VerifyOptRScalar(g kyber.Group, w kyber.Scalar, c kyber.Scalar, r kyber.Scalar, nodeIdx int, k int, publicKey kyber.Point, commitData CommitData, encryptedPoint kyber.Point) bool {
+	return verifyOptCommitPhase(g, w, c, r, nodeIdx, k, commitData) && verifyPublicPhase(g, w, c, r, publicKey, encryptedPoint)
+}
+
+func verifyOptCommitPhase(g kyber.Group, w kyber.Scalar, c kyber.Scalar, r kyber.Scalar, nodeIdx int, k int, commitData CommitData) bool {
+
+	xV := g.Point().Null()
+	//xI := g.Scalar().SetInt64(int64(nodeIdx))
+	finV := g.Point().Null()
+	xV.Add(xV, commitData.KCommits[nodeIdx-1])
+
+	yV := g.Point().Null()
+	yI := g.Scalar().SetInt64(int64(k))
+	for i := len(commitData.YCommits) - 1; i >= 0; i-- {
+		yV.Add(yV, commitData.YCommits[i])
+		yV.Mul(yI, yV)
+	}
+
+	finV.Add(finV, commitData.SecretCommit)
+	finV.Add(finV, xV)
+	finV.Add(finV, yV)
+	// finV = committed Eval
+	cXG := g.Point().Mul(c, finV)
+	rG := g.Point().Mul(r, commitData.H)
+	expected := g.Point().Add(cXG, rG)
+	committedW := g.Point().Mul(w, commitData.H)
+	return committedW.Equal(expected)
+}

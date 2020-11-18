@@ -6,9 +6,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-
-
-
 	"go.dedis.ch/kyber/v3"
 )
 
@@ -17,7 +14,6 @@ type EncryptedMessage struct {
 	MsgHex               string
 	NonceHex             string
 }
-
 
 func Encrypt(suite Suite, pubKey kyber.Point, msg []byte) (*EncryptedMessage, error) {
 

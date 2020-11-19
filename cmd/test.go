@@ -73,8 +73,8 @@ var (
 	}
 
 	testBivssCmd = &cobra.Command{
-		Use:   "pvss [node num] [t]",
-		Short: "pvss [node num] [t]",
+		Use:   "naive [node num] [t]",
+		Short: "naive [node num] [t]",
 		Args:  cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			nodeNum, err := strconv.Atoi(args[0])

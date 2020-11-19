@@ -101,8 +101,8 @@ func TestPVSSBench(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	//G := suite.Point().Base()
 	H := suite.Point().Pick(suite.XOF([]byte("H")))
-	n := 128
-	threshold := 20
+	n := 20
+	threshold := 10
 	x := make([]kyber.Scalar, n) // trustee private keys
 	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
@@ -115,7 +115,7 @@ func TestPVSSBench(t *testing.T) {
 	logrus.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: time.StampMicro,
 	})
-	logrus.Info("end distribution and start decryption")
+	logrus.Info("end distribution and start decryption1")
 	// (1) Share distribution (dealer)
 	encShares, pubPoly, err := pvss.EncShares(suite, H, X, secret, threshold)
 	assert.NoError(t, err)
@@ -124,16 +124,9 @@ func TestPVSSBench(t *testing.T) {
 	for i := 0; i < n; i++ {
 		sH[i] = pubPoly.Eval(encShares[i].S.I).V
 	}
-	var K []kyber.Point       // good public keys
-	var E []*pvss.PubVerShare // good encrypted shares
-	var D []*pvss.PubVerShare // good decrypted shares
-
+	logrus.Info("end distribution and start decryption2")
 	for i := 0; i < n; i++ {
-		if ds, err := pvss.DecShare(suite, H, X[i], sH[i], x[i], encShares[i]); err == nil {
-			K = append(K, X[i])
-			E = append(E, encShares[i])
-			D = append(D, ds)
-		}
+		pvss.VerifyEncShare(suite, H, X[i], sH[i], encShares[i])
 	}
 	logrus.Info("end decryption")
 }
@@ -142,9 +135,9 @@ func TestBIVSSBench(tt *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	secret := suite.Scalar().SetInt64(123)
 
-	t := 20
+	t := 10
 	u := t
-	n := 128
+	n := 20
 
 	x := make([]kyber.Scalar, n) // trustee private keys
 	X := make([]kyber.Point, n)  // trustee public keys
@@ -180,6 +173,52 @@ func TestBIVSSBench(tt *testing.T) {
 			r := GenerateRScalar(suite, w, c,serverPoints[i][j])
 			VerifyRScalar(suite, w, c, r, i+1,j, X[i], commit, encShares[i][j])
 		}
+	}
+	logrus.Info("end decryption ")
+
+}
+
+
+func TestOPTBIVSSBench(tt *testing.T) {
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	secret := suite.Scalar().SetInt64(123)
+
+	t := 10
+	u := t
+	n := 20
+
+	x := make([]kyber.Scalar, n) // trustee private keys
+	X := make([]kyber.Point, n)  // trustee public keys
+	poly := GetSamplePoly(suite, secret)
+
+	for i := 0; i < n; i++ {
+		x[i] = suite.Scalar().Pick(suite.RandomStream())
+		X[i] = suite.Point().Mul(x[i], nil)
+	}
+	serverPoints := make([][]BiPoint, n)
+	encShares := make([][]kyber.Point,n)
+
+	logrus.SetFormatter(&logrus.JSONFormatter{
+		TimestampFormat: time.StampMicro,
+	})
+	logrus.Info("start distribution")
+	for i := 0; i < n; i++ {
+		serverPoints[i] = make([]BiPoint, u)
+		encShares[i] = make([]kyber.Point, u)
+		for j := 0; j < u; j++ {
+			serverPoints[i][j] = poly.Eval(int64(i+1),int64(j))
+			encShares[i][j] = suite.Point().Mul(serverPoints[i][j].V,X[i])
+		}
+	}
+	H := suite.Point().Pick(suite.XOF([]byte("H")))
+	commit := poly.OptCommit(H,n)
+	logrus.Info("end distribution and start decryption")
+	w := suite.Scalar().SetInt64(int64(300))
+	c := suite.Scalar().SetInt64(int64(2))
+	//distribute end
+	for i := 0; i < n; i++ {
+		r := GenerateRScalar(suite, w, c,serverPoints[i][1])
+		VerifyOptRScalar(suite, w, c, r, i+1,1, X[i], commit, encShares[i][1])
 	}
 	logrus.Info("end decryption ")
 
